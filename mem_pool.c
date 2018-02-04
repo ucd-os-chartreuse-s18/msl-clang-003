@@ -107,7 +107,6 @@ alloc_status mem_init() {
         // allocate the pool store with initial capacity
         pool_store = calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
         pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
-        pool_store_size = 0;
         return ALLOC_OK; // memory has (hopefully) been allocated
     }
     // if pool_store != NULL, mem_init() was called again before mem_free
