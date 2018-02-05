@@ -103,7 +103,7 @@ static alloc_status _mem_invalidate_gap_ix(pool_mgr_pt pool_mgr);
 alloc_status mem_init() {
     // ensure that it's called only once until mem_free
     // note: holds pointers only, other functions to allocate/deallocate
-    if(pool_store == NULL) {
+    if (pool_store == NULL) {
         // allocate the pool store with initial capacity
         pool_store = calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
         pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
@@ -115,19 +115,32 @@ alloc_status mem_init() {
 
 alloc_status mem_free() {
     // ensure that it's called only once for each mem_init
-    // if pool_store == NULL then we called mem_free when already free
-    if(pool_store == NULL) {
+    // if pool_store == NULL then we called mem_free when already freed
+    if (pool_store == NULL) {
         return ALLOC_CALLED_AGAIN;
     }
     // make sure all pool managers have been deallocated
+    // if an entry in the pool store is not null, not freed
+    for (int i = 0; i < pool_store_size; i++) {
+        if (pool_store[i] != NULL) {
+            return ALLOC_NOT_FREED;
+        }
+    }
     // can free the pool store array
+    free(pool_store); //free the previously calloced pool
     // update static variables
+    pool_store_capacity = 0;
+    pool_store_size = 0;
+    pool_store = NULL;
 
-    return ALLOC_FAIL;
+    return ALLOC_OK; //everything might have worked..
 }
 
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     // make sure there the pool store is allocated
+    if (pool_store == NULL) { // no pool_store has yet been allocated
+
+    }
     // expand the pool store, if necessary
     // allocate a new mem pool mgr
     // check success, on error return null
