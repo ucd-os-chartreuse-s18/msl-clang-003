@@ -156,16 +156,24 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     if (new_mgr == NULL) {
         return NULL;
     }
+
     // allocate a new memory pool
-    void * new_pool = malloc(size);
+    // allocate mem, set all parameters
+    new_mgr->pool.mem = (char*) calloc(size, sizeof(char));
+    new_mgr->pool.policy = policy;
+    new_mgr->pool.total_size = size;
+    new_mgr->pool.num_allocs = 0;// no nodes have been allocated
+    new_mgr->pool.num_gaps = 1;  // the entire thing is a gap at first
+
     // check success, on error deallocate mgr and return null
-    assert(new_pool);
-    // some error occured, the pool was no allocated
-    if (new_pool == NULL) {
-        free(new_pool);
+    assert(new_mgr->pool.mem);
+    // some error occured, the pool was not allocated
+    if (new_mgr->pool.mem == NULL) {
+        free(new_mgr);
         return NULL;
     }
     // allocate a new node heap
+    
     // check success, on error deallocate mgr/pool and return null
     // allocate a new gap index
     // check success, on error deallocate mgr/pool/heap and return null
