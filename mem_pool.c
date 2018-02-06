@@ -109,8 +109,10 @@ alloc_status mem_init() {
         pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
         return ALLOC_OK; // memory has (hopefully) been allocated
     }
-    // if pool_store != NULL, mem_init() was called again before mem_free
-    return ALLOC_CALLED_AGAIN;
+    else {
+        // if pool_store != NULL, mem_init() was called again before mem_free (bad)
+        return ALLOC_CALLED_AGAIN;
+    }
 }
 
 alloc_status mem_free() {
@@ -127,8 +129,8 @@ alloc_status mem_free() {
         }
     }
     // can free the pool store array
-    free(pool_store); //free the previously calloced pool
-    // update static variables
+    free(pool_store);
+    // update static variables, zero out and nullify pool_store
     pool_store_capacity = 0;
     pool_store_size = 0;
     pool_store = NULL;
@@ -139,13 +141,30 @@ alloc_status mem_free() {
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     // make sure there the pool store is allocated
     if (pool_store == NULL) { // no pool_store has yet been allocated
-
+        return NULL;
     }
     // expand the pool store, if necessary
+    alloc_status ret_status = _mem_resize_pool_store();
+    assert(ret_status == ALLOC_OK); //end program if alloc NOT ok
+    if (ret_status != ALLOC_OK) {
+        return NULL; //need to expand the pool store
+    }
     // allocate a new mem pool mgr
+    pool_mgr_pt new_mgr = (pool_mgr_pt) calloc(1, sizeof(pool_mgr_t));
     // check success, on error return null
+    assert(new_mgr);
+    if (new_mgr == NULL) {
+        return NULL;
+    }
     // allocate a new memory pool
+    void * new_pool = malloc(size);
     // check success, on error deallocate mgr and return null
+    assert(new_pool);
+    // some error occured, the pool was no allocated
+    if (new_pool == NULL) {
+        free(new_pool);
+        return NULL;
+    }
     // allocate a new node heap
     // check success, on error deallocate mgr/pool and return null
     // allocate a new gap index
