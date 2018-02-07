@@ -29,7 +29,7 @@ Table of Contents
 
 _dynamic memory management with the C language_
 
-* * * 
+* * *
 
 _Note: `cmocka` has to be built installed separately and dynamically linked to the project. You can find directions in [os-playground](https://github.com/ivogeorg/os-playground/blob/master/cmocka-mem-pool.md). The `CMakeLists.txt` has entries for Linux (Ubuntu) and MacOS. On Windows with Cigwin/MinGW, it should be similar but the path has to be adjusted. If someone figures it out, please [create a pull request](https://help.github.com/articles/creating-a-pull-request/) for the addition._
 
@@ -175,7 +175,7 @@ The memory pool will work roughly like the dynamic memory management functions `
       unsigned num_gaps;
    } pool_t, *pool_pt;
    ```
-   
+
    **Behavior & management:**
    1. Passed to all functions that open, allocate on, dealocate from, and close a pool.
    2. The metadata contained in the structure is used by the library, so should not be overwritten by the user. It is provided for testing and debugging.
@@ -191,7 +191,7 @@ The memory pool will work roughly like the dynamic memory management functions `
       size_t size;
    } alloc_t, *alloc_pt;
    ```
-   
+
 3. Pool manager _(library static)_
 
    This is a data structure that the `mem_pool` library uses to store the private metadata for a single memory pool. It is hidden from the user.
@@ -213,11 +213,11 @@ The memory pool will work roughly like the dynamic memory management functions `
    1. The pool manager holds pointers to all the required metadata for the memory allocations for a single pool
    2. The functions which make allocations in a given pool have to pass the pool as their first argument.
    3. The `gap_ix_capacity` is the capacity of the gap index and used to test if the index has to be expanded. If the index is expanded, `gap_ix_capacity` is updated as well.
-   
+
 4. (Array-packed linked-list) node heap _(library static)_
 
    This is a _packed_ linked list which holds nodes for all the segments (allocations or gaps) in a pool, in ascending order by memory address. That is, the first node is always going to point to the segment that starts at the beginning of the pool. This data structure is hidden from the user, except that the `num_allocs` and `num_gaps` variables in the user-facing `pool_t` structure are in sync with the node heap.
-   
+
    **Structure:**
    ```c
    typedef struct _node {
@@ -230,14 +230,14 @@ The memory pool will work roughly like the dynamic memory management functions `
    **Behavior & management:**
    1. This is a linked list allocated as an array of `node__t` structures. If a node has `used` set to 1, it is part of the list; otherwise, it is an unused node which can be used for a new allocation or gap.
    2. The first node is always present and should always point to the top segment of the pool, regardless of the type of segment (allocation or gap).
-   2. An active list node (`used == 1`) is either an allocation (`allocated == 1`) or a gap (`allocated == 0`).
-   3. The list is doubly-linked to simplify the deallocation of an allocated sector between two gap sectors.
-   4. The linked list is initialized with a certain capacity. If necessary, it should be resized. See the corresponding `static` function and constants in the source file.
-   
+   3. An active list node (`used == 1`) is either an allocation (`allocated == 1`) or a gap (`allocated == 0`).
+   4. The list is doubly-linked to simplify the deallocation of an allocated sector between two gap sectors.
+   5. The linked list is initialized with a certain capacity. If necessary, it should be resized. See the corresponding `static` function and constants in the source file.
+
 5. Gap index _(library static)_
 
    This is a simple array of `gap_t` structures which holds an element for each gap that exists in a given pool and is sorted in an ascending order by size.
-   
+
    **Structure:**
    ```c
    typedef struct _gap {
@@ -257,7 +257,7 @@ The memory pool will work roughly like the dynamic memory management functions `
 6. Pool (manager) store _(library static)_
 
    This is an array of pointers to `pool_mgr_t` structures and so holds the metadata for multiple pools. See the corresponding `static` variables and functions.
-   
+
    **Behavior & management:**
    1. The array is initialized with a certain capacity. If necessary, it should be resized with `realloc()`. See the corresponding `static` function and constants in the source file.
    2. Since this array contains pointers, they can be `NULL`. The size of the array, for which a `static` variable is used, should be incremented when a new pool is opened and **never** decremented. The pointer to a new pool should always be added to the end of the array. When a pool is closed, the pointer should be set to `NULL`. 
@@ -265,7 +265,7 @@ The memory pool will work roughly like the dynamic memory management functions `
 7. Pool segment _(user facing)_
 
    This is a simple structure which represents a pool segment, either an allocation or a gap. Used for pool inspection by the user.
-   
+
    **Structure:**
    ```c
    typedef struct _pool_segment {
@@ -273,7 +273,7 @@ The memory pool will work roughly like the dynamic memory management functions `
       unsigned long allocated;
    } pool_segment_t, *pool_segment_pt;
    ```
-   
+
    **Behavior & management:**
    1. An array of such structures is returned by the function `mem_inspect_pool()` for testing, printing, and debugging.
    2. **Note:** The returned array should be freed by the user.
