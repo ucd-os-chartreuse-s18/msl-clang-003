@@ -341,7 +341,7 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
 
     // add the entry at the end
     // clarity: gap_ix[pool_mgr->pool.num_gaps] should refer to
-    // the index of the last gap in the pool.
+    // the index just behind the last gap in the pool.
     // Set size and pointer to the node of this gap node
     pool_mgr->gap_ix[pool_mgr->pool.num_gaps].size = size;
     pool_mgr->gap_ix[pool_mgr->pool.num_gaps].node = node;
