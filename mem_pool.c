@@ -306,14 +306,12 @@ void mem_inspect_pool(pool_pt pool,
 static alloc_status _mem_resize_pool_store() {
     // check if necessary
 
-           /*     if (((float) pool_store_size / pool_store_capacity)
-                    > MEM_POOL_STORE_FILL_FACTOR) {
-
-                }*/
-
-    // don't forget to update capacity variables
-
-    return ALLOC_FAIL;
+    if (((float) pool_store_size / pool_store_capacity)
+        > MEM_POOL_STORE_FILL_FACTOR) {
+        pool_store = realloc(pool_store, pool_store_capacity * MEM_POOL_STORE_EXPAND_FACTOR * sizeof(pool_mgr_pt));
+        pool_store_capacity = pool_store_capacity * MEM_POOL_STORE_EXPAND_FACTOR;
+    }
+    return ALLOC_OK;
 }
 
 static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
