@@ -131,10 +131,9 @@ alloc_status mem_free() {
     // can free the pool store array
     free(pool_store);
     // update static variables, zero out and nullify pool_store
-    pool_store = NULL;
     pool_store_capacity = 0;
     pool_store_size = 0;
-
+    pool_store = NULL;
 
     return ALLOC_OK; //everything might have worked..
 }
@@ -153,33 +152,54 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
      *}
      */
     // allocate a new mem pool mgr
-    pool_mgr_pt new_mgr = (pool_mgr_pt) calloc(1, sizeof(pool_mgr_t));
+    pool_mgr_pt new_pmgr = (pool_mgr_pt) calloc(1, sizeof(pool_mgr_t));
     // check success, on error return null
-    //assert(new_mgr);
-    if (new_mgr == NULL) {
+    assert(new_pmgr);
+    if (new_pmgr == NULL) {
         return NULL;
     }
     // allocate a new memory pool
+    void * new_mem = malloc(size);
     // allocate mem, set all parameters
-    new_mgr->pool.mem = (char*) calloc(size, sizeof(char));
-    new_mgr->pool.policy = policy;
-    new_mgr->pool.total_size = size;
-    new_mgr->pool.num_allocs = 0;// no nodes have been allocated
-    new_mgr->pool.num_gaps = 1;  // the entire thing is a gap at first
-
+    new_pmgr->pool.mem = new_mem;   //mem holds size bytes
+    new_pmgr->pool.policy = policy;
+    new_pmgr->pool.total_size = size;
+    new_pmgr->pool.num_allocs = 0;  // no nodes have been allocated
+    new_pmgr->pool.num_gaps = 1;    // the entire thing is a gap
+    new_pmgr->pool.alloc_size = 0;  // pool has nothing allocated
     // check success, on error deallocate mgr and return null
-    assert(new_mgr->pool.mem);
-    // some error occured, the pool was not allocated
-    if (new_mgr->pool.mem == NULL) {
-        free(new_mgr);
+    assert(new_pmgr->pool.mem);
+    // some error occurred, the pool was not allocated
+    if (new_pmgr->pool.mem == NULL) {
+        free(new_pmgr);
+        new_pmgr = NULL;
         return NULL;
     }
     // allocate a new node heap
-
+    node_pt new_nheap = (node_pt)calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(node_t));
     // check success, on error deallocate mgr/pool and return null
+    assert(new_nheap);
+    if (new_nheap == NULL) {
+        free(new_pmgr);
+        new_pmgr = NULL;
+        free(new_mem);
+        new_mem = NULL;
+        return NULL;
+    }
     // allocate a new gap index
+    gap_pt new_gapix = (gap_pt)calloc(MEM_GAP_IX_INIT_CAPACITY, sizeof(gap_t));
     // check success, on error deallocate mgr/pool/heap and return null
+    assert(new_gapix);
+    if (new_gapix == NULL) {
+        free(new_pmgr);
+        new_pmgr = NULL;
+        free(new_mem);
+        new_mem = NULL;
+        free(new_nheap);
+        new_nheap = NULL;
+    }
     // assign all the pointers and update meta data:
+    
     //   initialize top node of node heap
     //   initialize top node of gap index
     //   initialize pool mgr
@@ -374,7 +394,7 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     // the new entry is at the end, so "bubble it up"
     // loop from num_gaps - 1 until but not including 0:
-    for (int i = pool_mgr->pool.num_gaps - 1; i > 0; --i) {
+    for (int i = pool_mgr->pool.num_gaps - 1; --i; i > 0) {
         /* if the size of the current entry is less than the previous (u - 1)
          * or if the sizes are the same but the current entry points to a
          * node with a lower address of pool allocation address (mem)

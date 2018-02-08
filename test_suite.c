@@ -237,9 +237,9 @@ static void test_pool_nonempty(void **state) {
 /***       2. USER-FACING METADATA       ***/
 /*******************************************/
 
-static void test_pool_ff_metadata(void **state) {
-    alloc_status status;
-    pool_pt pool = *state;
+//static void test_pool_ff_metadata(void **state) {
+//    alloc_status status;
+//    pool_pt pool = *state;
 
     /*
      * Uses scenario 07 w/o pool checking:
@@ -254,7 +254,7 @@ static void test_pool_ff_metadata(void **state) {
      * 8. Deallocate the 10000.
      * 9. Deallocate 1100.
      */
-
+/*
     pool_segment_t exp0[1] =
             {
                     {pool->total_size, 0}
@@ -359,10 +359,11 @@ static void test_pool_ff_metadata(void **state) {
 
     check_metadata(pool, FIRST_FIT, POOL_SIZE, 0, 0, 1);
 }
+*/
 
-static void test_pool_bf_metadata(void **state) {
-    alloc_status status;
-    pool_pt pool = *state;
+//static void test_pool_bf_metadata(void **state) {
+//    alloc_status status;
+//    pool_pt pool = *state;
 
     /*
      * Uses scenario 17 w/o pool checking:
@@ -374,7 +375,7 @@ static void test_pool_bf_metadata(void **state) {
      * 5. Allocate another 50.
      * 6. Clean up.
      */
-
+/*
     pool_segment_t exp0[1] =
             {
                     {pool->total_size, 0},
@@ -458,7 +459,7 @@ static void test_pool_bf_metadata(void **state) {
 
     check_metadata(pool, BEST_FIT, POOL_SIZE, 0, 0, 1);
 }
-
+*/
 
 /*******************************************/
 /***       3. FIRST_FIT SCENARIOS        ***/
@@ -2404,10 +2405,10 @@ int run_test_suite() {
 
             cmocka_unit_test(test_pool_nonempty),
 
-            cmocka_unit_test_setup_teardown(test_pool_ff_metadata, pool_ff_setup, pool_ff_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_bf_metadata, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_ff_metadata, pool_ff_setup, pool_ff_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_bf_metadata, pool_bf_setup, pool_bf_teardown),
             
-            /*
+
             // First-fit tests
             cmocka_unit_test_setup_teardown(test_pool_scenario00, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario01, pool_ff_setup, pool_ff_teardown),
@@ -2420,9 +2421,9 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown),
-            */
+
             
-            /*
+
             // Best-fit tests
             cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario12, pool_bf_setup, pool_bf_teardown),
@@ -2433,7 +2434,7 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            */
+
             
             // Stress tests
             //cmocka_unit_test(test_pool_stresstest0),
