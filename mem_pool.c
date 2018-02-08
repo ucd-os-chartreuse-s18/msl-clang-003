@@ -144,11 +144,13 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
         return NULL;
     }
     // expand the pool store, if necessary
-    //alloc_status ret_status = _mem_resize_pool_store();
-    //assert(ret_status == ALLOC_OK); //end program if alloc NOT ok
-    //if (ret_status != ALLOC_OK) {
-    //    return NULL; //need to expand the pool store
-    //}
+    /*
+     * alloc_status ret_status = _mem_resize_pool_store();
+     *assert(ret_status == ALLOC_OK); //end program if alloc NOT ok
+     *if (ret_status != ALLOC_OK) {
+     *    return NULL; //need to expand the pool store
+     *}
+     */
     // allocate a new mem pool mgr
     pool_mgr_pt new_mgr = (pool_mgr_pt) calloc(1, sizeof(pool_mgr_t));
     // check success, on error return null
