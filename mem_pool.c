@@ -105,7 +105,7 @@ alloc_status mem_init() {
     // note: holds pointers only, other functions to allocate/deallocate
     if (pool_store == NULL) {
         // allocate the pool store with initial capacity
-        pool_store = calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
+        pool_store = (pool_mgr_pt *)calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
         pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
         return ALLOC_OK; // memory has (hopefully) been allocated
     }
