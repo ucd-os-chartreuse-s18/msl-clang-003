@@ -250,10 +250,13 @@ alloc_status mem_pool_close(pool_pt pool) {
     }
     // free memory pool
     free(new_pmgr->pool.mem);
+    new_pmgr->pool.mem = NULL;
     // free node heap
     free(new_pmgr->node_heap);
+    new_pmgr->node_heap = NULL;
     // free gap index
     free(new_pmgr->gap_ix);
+    new_pmgr->gap_ix = NULL;
     // find mgr in pool store and set to null
     for(int i = 0; i < pool_store_size; ++i) {
         if (pool_store[i] == new_pmgr) {
@@ -264,7 +267,6 @@ alloc_status mem_pool_close(pool_pt pool) {
     // note: don't decrement pool_store_size, because it only grows
     // free mgr
     free(new_pmgr);
-
     return ALLOC_OK;
 }
 
