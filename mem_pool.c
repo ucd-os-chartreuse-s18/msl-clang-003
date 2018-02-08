@@ -176,7 +176,7 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
         return NULL;
     }
     // allocate a new node heap
-    node_pt new_nheap = (node_pt)calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(node_t));
+    node_pt new_nheap = (node_pt)calloc(MEM_NODE_HEAP_INIT_CAPACITY, sizeof(node_t));
     // check success, on error deallocate mgr/pool and return null
     assert(new_nheap);
     if (new_nheap == NULL) {
@@ -199,14 +199,36 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
         new_nheap = NULL;
     }
     // assign all the pointers and update meta data:
-    
+    new_pmgr->node_heap = new_nheap;
+    new_pmgr->total_nodes = MEM_NODE_HEAP_INIT_CAPACITY;
+    new_pmgr->used_nodes = 1;     //just the 1 gap
+    new_pmgr->gap_ix = new_gapix;
+    new_pmgr->gap_ix_capacity = MEM_GAP_IX_INIT_CAPACITY;
+
     //   initialize top node of node heap
+    new_pmgr->node_heap[0].alloc_record.size = size;
+    new_pmgr->node_heap[0].alloc_record.mem = new_mem;
+    new_pmgr->node_heap[0].used = 1;
+    new_pmgr->node_heap[0].allocated = 0;
+    new_pmgr->node_heap[0].next = NULL;
+    new_pmgr->node_heap[0].prev = NULL;
     //   initialize top node of gap index
+    new_pmgr->gap_ix[0].size = size;
+    new_pmgr->gap_ix[0].node = new_pmgr->node_heap;
+
     //   initialize pool mgr
     //   link pool mgr to pool store
+    // find the first empty position in the pool_store
+    // and link the new pool mgr to that location
+    int i = 0;
+    while (pool_store[i] != NULL) {
+        ++i;
+    }
+    pool_store[i] = new_pmgr;
+    ++pool_store_size;
     // return the address of the mgr, cast to (pool_pt)
 
-    return NULL;
+    return (pool_pt)new_pmgr;
 }
 
 alloc_status mem_pool_close(pool_pt pool) {
