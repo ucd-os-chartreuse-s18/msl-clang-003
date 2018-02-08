@@ -240,7 +240,8 @@ alloc_status mem_pool_close(pool_pt pool) {
     // check if pool has only one gap
     assert(new_pmgr);
     assert(pool->num_allocs == 0);
-    if (new_pmgr == NULL || pool->num_gaps > 1 || pool->num_allocs == 0) {
+    if ((new_pmgr == NULL) || (pool->num_gaps > 1) ||
+            (pool->num_gaps == 0)) {
         return ALLOC_NOT_FREED;
     }
     // free memory pool
