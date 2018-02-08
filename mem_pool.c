@@ -131,9 +131,10 @@ alloc_status mem_free() {
     // can free the pool store array
     free(pool_store);
     // update static variables, zero out and nullify pool_store
+    pool_store = NULL;
     pool_store_capacity = 0;
     pool_store_size = 0;
-    pool_store = NULL;
+
 
     return ALLOC_OK; //everything might have worked..
 }
@@ -155,10 +156,9 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     pool_mgr_pt new_mgr = (pool_mgr_pt) calloc(1, sizeof(pool_mgr_t));
     // check success, on error return null
     //assert(new_mgr);
-    //if (new_mgr == NULL) {
-    //    return NULL;
-    //}
-
+    if (new_mgr == NULL) {
+        return NULL;
+    }
     // allocate a new memory pool
     // allocate mem, set all parameters
     new_mgr->pool.mem = (char*) calloc(size, sizeof(char));
@@ -374,7 +374,7 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     // the new entry is at the end, so "bubble it up"
     // loop from num_gaps - 1 until but not including 0:
-    for (int i = pool_mgr->pool.num_gaps - 1; --i; i > 0) {
+    for (int i = pool_mgr->pool.num_gaps - 1; i > 0; --i) {
         /* if the size of the current entry is less than the previous (u - 1)
          * or if the sizes are the same but the current entry points to a
          * node with a lower address of pool allocation address (mem)
