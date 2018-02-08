@@ -220,30 +220,52 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     //   link pool mgr to pool store
     // find the first empty position in the pool_store
     // and link the new pool mgr to that location
-    int i = 0;
-    while (pool_store[i] != NULL) {
-        ++i;
+    for(int i = 0; i < pool_store_size; ++i) {
+        if (pool_store[i] == NULL) {
+            pool_store[i] = new_pmgr;
+            ++pool_store_size;
+            break;
+        }
     }
-    pool_store[i] = new_pmgr;
-    ++pool_store_size;
     // return the address of the mgr, cast to (pool_pt)
-
     return (pool_pt)new_pmgr;
 }
 
 alloc_status mem_pool_close(pool_pt pool) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
+    pool_mgr_pt new_pmgr = (pool_mgr_pt)pool;
     // check if this pool is allocated
+    // assert(new_pmgr);
+    if (new_pmgr == NULL) {
+        return ALLOC_NOT_FREED;
+    }
     // check if pool has only one gap
+    if (pool->num_gaps > 1) {
+        return ALLOC_NOT_FREED;
+    }
     // check if it has zero allocations
+    assert(pool->num_allocs == 0);
+    if (pool->num_allocs != 0) {
+        return ALLOC_NOT_FREED;
+    }
     // free memory pool
+    free(new_pmgr->pool.mem);
     // free node heap
+    free(new_pmgr->node_heap);
     // free gap index
+    free(new_pmgr->gap_ix);
     // find mgr in pool store and set to null
+    for(int i = 0; i < pool_store_size; ++i) {
+        if (pool_store[i] == new_pmgr) {
+            pool_store[i] = NULL;
+            break;
+        }
+    }
     // note: don't decrement pool_store_size, because it only grows
     // free mgr
+    free(new_pmgr);
 
-    return ALLOC_FAIL;
+    return ALLOC_OK;
 }
 
 void * mem_new_alloc(pool_pt pool, size_t size) {
