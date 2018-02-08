@@ -233,19 +233,14 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
 
 alloc_status mem_pool_close(pool_pt pool) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
+    // possible because pool is at the top of the pool_mgr_t structure
     pool_mgr_pt new_pmgr = (pool_mgr_pt)pool;
     // check if this pool is allocated
-    // assert(new_pmgr);
-    if (new_pmgr == NULL) {
-        return ALLOC_NOT_FREED;
-    }
-    // check if pool has only one gap
-    if (pool->num_gaps > 1) {
-        return ALLOC_NOT_FREED;
-    }
     // check if it has zero allocations
+    // check if pool has only one gap
+    assert(new_pmgr);
     assert(pool->num_allocs == 0);
-    if (pool->num_allocs != 0) {
+    if (new_pmgr == NULL || pool->num_gaps > 1 || pool->num_allocs == 0) {
         return ALLOC_NOT_FREED;
     }
     // free memory pool
@@ -267,13 +262,19 @@ alloc_status mem_pool_close(pool_pt pool) {
     // note: don't decrement pool_store_size, because it only grows
     // free mgr
     free(new_pmgr);
+    new_pmgr = NULL;
     return ALLOC_OK;
 }
 
 void * mem_new_alloc(pool_pt pool, size_t size) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
+    pool_mgr_pt new_pmgr = (pool_mgr_pt)(pool);
     // check if any gaps, return null if none
+    if (new_pmgr->pool.num_gaps == 0) {
+        return NULL;
+    }
     // expand heap node, if necessary, quit on error
+
     // check used nodes fewer than total nodes, quit on error
     // get a node for allocation:
     // if FIRST_FIT, then find the first sufficient node in the node heap
