@@ -571,15 +571,15 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     // the new entry is at the end, so "bubble it up"
     // loop from num_gaps - 1 until but not including 0:
-    for (int i = pool_mgr->pool.num_gaps - 1; --i; i > 0) {
+    for (int i = pool_mgr->pool.num_gaps - 1; i > 0; --i) {
         /* if the size of the current entry is less than the previous (u - 1)
          * or if the sizes are the same but the current entry points to a
          * node with a lower address of pool allocation address (mem)
          * swap them (by copying) (remember to use a temporary variable)
          */
         if ((pool_mgr->gap_ix[i].size < pool_mgr->gap_ix[i-1].size)
-            || ((pool_mgr->gap_ix[i].size == pool_mgr->gap_ix[i-1].size)
-            && (pool_mgr->gap_ix[i].node->alloc_record.mem <
+                || ((pool_mgr->gap_ix[i].size == pool_mgr->gap_ix[i-1].size)
+                && (pool_mgr->gap_ix[i].node->alloc_record.mem <
                 pool_mgr->gap_ix[i].node->alloc_record.mem))) {
             gap_t tmp_gap = pool_mgr->gap_ix[i];
             pool_mgr->gap_ix[i] = pool_mgr->gap_ix[i-1];
