@@ -236,10 +236,12 @@ alloc_status mem_pool_close(pool_pt pool) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
     // possible because pool is at the top of the pool_mgr_t structure
     pool_mgr_pt new_pmgr = (pool_mgr_pt)pool;
+
     // check if this pool is allocated
     // check if it has zero allocations
     // check if pool has only one gap
     assert(new_pmgr);
+
     //assert(pool->num_allocs == 0);
     if ((new_pmgr == NULL) || (pool->num_gaps > 1) ||
             (pool->num_gaps == 0)) {
@@ -248,12 +250,15 @@ alloc_status mem_pool_close(pool_pt pool) {
     // free memory pool
     free(new_pmgr->pool.mem);
     new_pmgr->pool.mem = NULL;
+
     // free node heap
     free(new_pmgr->node_heap);
     new_pmgr->node_heap = NULL;
+
     // free gap index
     free(new_pmgr->gap_ix);
     new_pmgr->gap_ix = NULL;
+
     // find mgr in pool store and set to null
     for(int i = 0; i < pool_store_size; ++i) {
         if (pool_store[i] == new_pmgr) {
@@ -403,35 +408,70 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
 alloc_status mem_del_alloc(pool_pt pool, void * alloc) {
     
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
-    pool_mgr_pt new_poolmgr = (pool_mgr_pt) pool;
-    
-    // get node from alloc by casting the pointer to (node_pt)
-    
-    // find the node in the node heap
-    // this is node-to-delete
-    // make sure it's found
-    // convert to gap node
-    // update metadata (num_allocs, alloc_size)
-    // if the next node in the list is also a gap, merge into node-to-delete
-    //   remove the next node from gap index
-    //   check success
-    //   add the size to the node-to-delete
-    //   update node as unused
-    //   update metadata (used nodes)
-    //   update linked list:
-    /*
-                    if (next->next) {
-                        next->next->prev = node_to_del;
-                        node_to_del->next = next->next;
-                    } else {
-                        node_to_del->next = NULL;
-                    }
-                    next->next = NULL;
-                    next->prev = NULL;
-     */
+    pool_mgr_pt new_pmgr = (pool_mgr_pt) pool;
 
+    // get node from alloc by casting the pointer to (node_pt)
+    node_pt new_node = (node_pt) alloc;
+
+    // find the node in the node heap
+    node_pt node_to_del = NULL; //this is node-to-delete
+    unsigned i; // use as an index beyond for loop scope
+    for(i = 0; i < new_pmgr->total_nodes; ++i) {
+        //this was confusing. had to dereference node_heap[i]
+        //and compare addresses or overload == for struct_node
+        if(&new_pmgr->node_heap[i] == new_node) {
+            node_to_del = &new_pmgr->node_heap[i];
+        }
+    }
+    // make sure it's found
+    assert(node_to_del);
+    if(node_to_del == NULL) {
+        return ALLOC_NOT_FREED; // failed to deallocate
+    }
+    // convert to gap node
+    // allocated = 0 indicates a gap node
+    node_to_del->allocated = 0;
+    
+    // update metadata (num_allocs, alloc_size)
+    --new_pmgr->pool.num_allocs; // decrement by 1
+    new_pmgr->pool.alloc_size -= node_to_del->alloc_record.size;
+
+    // if the next node in the list is also a gap, merge into node-to-delete
+    if((node_to_del->next != NULL) &&
+            (node_to_del->next->allocated == 0)) {
+        //   remove the next node from gap index
+        _mem_remove_from_gap_ix(new_pmgr, node_to_del->next->alloc_record.size,
+                                node_to_del->next);
+
+        for (int j = 0; j < new_pmgr->pool.num_gaps; ++j) {
+            if (&new_pmgr->gap_ix[j] == (gap_pt) &node_to_del) {
+                return ALLOC_NOT_FREED;
+            }
+        }
+        //   add the size to the node-to-delete
+        node_to_del->alloc_record.size += node_to_del->next->alloc_record.size;
+
+        //   update node as unused
+        node_to_del->next->used = 0;
+
+        //   update metadata (used nodes)
+        --new_pmgr->used_nodes;
+        //   update linked list:
+        //first a check to see if the next node after the merge node is null
+        if (node_to_del->next->next) {
+            node_to_del->next->next->prev = node_to_del;
+            node_to_del->next = node_to_del->next->next;
+        } else {
+            node_to_del->next = NULL;
+        }
+        node_to_del->next->next = NULL;
+        node_to_del->next->prev = NULL;
+    } // end if statement that keeps us safe from seg fault
+    
     // this merged node-to-delete might need to be added to the gap index
     // but one more thing to check...
+
+
     // if the previous node in the list is also a gap, merge into previous!
     //   remove the previous node from gap index
     //   check success
@@ -542,26 +582,25 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
                                             size_t size,
                                             node_pt node) {
+    // find the position of the node in the gap index
     unsigned i;
-    for (i = 0; i < pool_mgr->gap_ix_capacity; i++) {
+    for (i = 0; i < pool_mgr->gap_ix_capacity; ++i) {
         if (pool_mgr->gap_ix[i].size == size) {
             break;
         }
     }
+    // loop from there to the end of the array:
+    //     pull the entries (i.e. copy over) one position up
+    //     this effectively deletes the chosen node
     while (i < pool_mgr->gap_ix_capacity - 1) {
         pool_mgr->gap_ix[i].size = pool_mgr->gap_ix[i+1].size;
         pool_mgr->gap_ix[i].node = pool_mgr->gap_ix[i+1].node;
-        i++;
+        ++i;
     }
+    // update metadata (num_gaps)
     pool_mgr->pool.num_gaps = i;
     pool_mgr->gap_ix[i].size = 0;
     pool_mgr->gap_ix[i].node = NULL;
-    
-    // find the position of the node in the gap index
-    // loop from there to the end of the array:
-    //    pull the entries (i.e. copy over) one position up
-    //    this effectively deletes the chosen node
-    // update metadata (num_gaps)
     // zero out the element at position num_gaps!
 
     return ALLOC_FAIL;
