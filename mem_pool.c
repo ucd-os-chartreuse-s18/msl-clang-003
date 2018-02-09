@@ -105,7 +105,7 @@ alloc_status mem_init() {
     // note: holds pointers only, other functions to allocate/deallocate
     if (pool_store == NULL) {
         // allocate the pool store with initial capacity
-        pool_store = (pool_mgr_pt *)calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
+        pool_store = (pool_mgr_pt*) calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_pt));
         pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
         return ALLOC_OK; // memory has (hopefully) been allocated
     }
@@ -176,7 +176,7 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
         return NULL;
     }
     // allocate a new node heap
-    node_pt new_nheap = (node_pt)calloc(MEM_NODE_HEAP_INIT_CAPACITY, sizeof(node_t));
+    node_pt new_nheap = (node_pt) calloc(MEM_NODE_HEAP_INIT_CAPACITY, sizeof(node_t));
     // check success, on error deallocate mgr/pool and return null
     assert(new_nheap);
     if (new_nheap == NULL) {
@@ -187,9 +187,9 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
         return NULL;
     }
     // allocate a new gap index
-    gap_pt new_gapix = (gap_pt)calloc(MEM_GAP_IX_INIT_CAPACITY, sizeof(gap_t));
+    gap_pt new_gapix = (gap_pt) calloc(MEM_GAP_IX_INIT_CAPACITY, sizeof(gap_t));
     // check success, on error deallocate mgr/pool/heap and return null
-    assert(new_gapix);
+    //assert(new_gapix);
     if (new_gapix == NULL) {
         free(new_pmgr);
         new_pmgr = NULL;
@@ -197,6 +197,7 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
         new_mem = NULL;
         free(new_nheap);
         new_nheap = NULL;
+        return NULL;
     }
     // assign all the pointers and update meta data:
     new_pmgr->node_heap = new_nheap;
@@ -239,7 +240,7 @@ alloc_status mem_pool_close(pool_pt pool) {
     // check if it has zero allocations
     // check if pool has only one gap
     assert(new_pmgr);
-    assert(pool->num_allocs == 0);
+    //assert(pool->num_allocs == 0);
     if ((new_pmgr == NULL) || (pool->num_gaps > 1) ||
             (pool->num_gaps == 0)) {
         return ALLOC_NOT_FREED;
@@ -268,23 +269,125 @@ alloc_status mem_pool_close(pool_pt pool) {
 }
 
 void * mem_new_alloc(pool_pt pool, size_t size) {
+    
+    // Note: Be careful of shallow vs. deep copying
+    // We are working with pointers, so values should
+    // carry over for the most part.
+    
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
     pool_mgr_pt new_pmgr = (pool_mgr_pt)(pool);
+    
     // check if any gaps, return null if none
     if (new_pmgr->pool.num_gaps == 0) {
         return NULL;
     }
     // expand heap node, if necessary, quit on error
-
+    //TODO (skip expand for now until stress test)
+    
     // check used nodes fewer than total nodes, quit on error
+    if (new_pmgr->used_nodes > new_pmgr->total_nodes) {
+        return NULL;
+    }
+    
     // get a node for allocation:
+    node_pt new_alloc = NULL;
+    
     // if FIRST_FIT, then find the first sufficient node in the node heap
     // if BEST_FIT, then find the first sufficient node in the gap index
-    // check if node found
+    if (pool->policy == FIRST_FIT) {
+        
+        new_alloc = new_pmgr->node_heap;
+        for (int i = 0; i < new_pmgr->total_nodes; i++) {
+            
+            // Used: 1, Allocated: 0 indicates a gap
+            // looking for gap who's size is > than our needed size
+            if (new_alloc->used == 1 && new_alloc->allocated == 0
+                && size <= new_alloc->alloc_record.size) { // found gap
+                // use new_alloc->allocated to signal success below
+                new_alloc->allocated = 1;
+                break;
+            }
+            
+            //new_pmgr->node_heap[i];
+            //iterate like a linked list or via indexing?
+            //looking to iterate in a way that would be like if
+            //we could look at the memory physically and go down
+            new_alloc = new_alloc->next;
+        }
+        
+    } else if (pool->policy == BEST_FIT) {
+        
+        // gaps will be sorted according to size available.
+        // depending on which direction it is sorted, it
+        // may be helpful to iterate in the other direction
+        for (int i = 0; i < new_pmgr->gap_ix_capacity; i++) {
+            if (size < new_pmgr->gap_ix[i].size) { // found gap
+                new_alloc = new_pmgr->gap_ix->node;
+                // use new_alloc->allocated to signal success below
+                new_alloc->allocated = 1;
+            }
+        }
+    }
+    
+    assert(new_alloc != NULL);
+    if (!new_alloc->allocated) { //the node was not found
+        return NULL;
+    }
+    
+    // At this point, new_alloc is a gap, and
+    // new_alloc->alloc_record.size; is the size of the gap
+    
     // update metadata (num_allocs, alloc_size)
-    // calculate the size of the remaining gap, if any
+    pool->num_allocs += 1;
+    pool->alloc_size += size;
+    
+    // used size_t to make compiler happy (unsigned int basically)
+    size_t remaining_gap = new_alloc->alloc_record.size - size;
+    
     // remove node from gap index
+    _mem_remove_from_gap_ix(new_pmgr, new_alloc->alloc_record.size, new_alloc);
+    
+    // TODO clarify what to do to the node here
     // convert gap_node to an allocation node of given size
+    new_alloc->alloc_record.size = size;
+    //new_alloc->alloc_record.mem = (char*) calloc(n, sizeof(char));
+    
+    if (remaining_gap) {
+        
+        node_pt new_gap = NULL;
+        for (int i = 0; i < new_pmgr->total_nodes; i++) {
+            
+            if (!new_pmgr->node_heap[i].used) {
+                // found an unused node in the node heap
+                new_pmgr->node_heap[i].used = 1;
+                new_pmgr->node_heap[i].alloc_record.mem = NULL;
+                new_pmgr->node_heap[i].alloc_record.size = remaining_gap;
+                new_pmgr->node_heap[i].allocated = 0;
+                
+                //node->prev should stay the same
+                //node->next should point to the new gap
+                new_pmgr->node_heap[i].next = new_alloc;
+                
+                // TODO initialize to be a gap node.. (seems good, but test)
+                
+                new_pmgr->used_nodes += 1;
+                
+            }
+        }
+        // TODO assert
+        // if we exit all the way without finding an unused node, we will need a bigger node
+        // heap. that should be taken care of above, so I should also add an assert here
+    
+        alloc_status status = _mem_add_to_gap_ix(new_pmgr, remaining_gap, new_gap);
+        if (status == ALLOC_FAIL) {
+            return NULL;
+        }
+    } else { // the gap was completely replaced by the new alloc
+        new_pmgr->pool.num_gaps -= 1;
+    }
+    
+    return (alloc_pt) new_alloc;
+    
     // adjust node heap:
     //   if remaining gap, need a new node
     //   find an unused one in the node heap
@@ -295,13 +398,15 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     //   add to gap index
     //   check if successful
     // return allocation record by casting the node to (alloc_pt)
-
-    return NULL;
 }
 
 alloc_status mem_del_alloc(pool_pt pool, void * alloc) {
+    
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
+    pool_mgr_pt new_poolmgr = (pool_mgr_pt) pool;
+    
     // get node from alloc by casting the pointer to (node_pt)
+    
     // find the node in the node heap
     // this is node-to-delete
     // make sure it's found
@@ -392,21 +497,30 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
 
 static alloc_status _mem_resize_gap_ix(pool_mgr_pt pool_mgr) {
     // see above
-
+    
     return ALLOC_FAIL;
 }
 
 static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
                                        size_t size,
                                        node_pt node) {
-
-    // expand the gap index, if necessary (call the function)
-    alloc_status result = _mem_resize_gap_ix(pool_mgr);
-    assert(result == ALLOC_OK);
-    if (result != ALLOC_OK) {
-        return ALLOC_FAIL;
+    // let the result be negative to start
+    alloc_status result = ALLOC_FAIL;
+    
+    // This is the boundary edge. Note: it seems the previous expectation
+    // was that _mem_resize_gap_ix could be called and that function would
+    // perform whatever check necessary instead of doing this boundary check
+    // here. I'm not sure of that though. (see the comment below)
+    if (pool_mgr->pool.num_gaps == pool_mgr->gap_ix_capacity) {
+    
+        // expand the gap index, if necessary (call the function)
+        result = _mem_resize_gap_ix(pool_mgr);
+        //assert(result == ALLOC_OK);
+        if (result != ALLOC_OK) {
+            return ALLOC_FAIL;
+        }
     }
-
+    
     // add the entry at the end
     // clarity: gap_ix[pool_mgr->pool.num_gaps] should refer to
     // the index just behind the last gap in the pool.
@@ -414,7 +528,7 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     pool_mgr->gap_ix[pool_mgr->pool.num_gaps].size = size;
     pool_mgr->gap_ix[pool_mgr->pool.num_gaps].node = node;
     // update metadata (num_gaps)
-    pool_mgr->pool.num_gaps ++;
+    pool_mgr->pool.num_gaps++;
     // sort the gap index (call the function)
     result = _mem_sort_gap_ix(pool_mgr);
     //assert(result == ALLOC_OK);
@@ -428,6 +542,21 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
                                             size_t size,
                                             node_pt node) {
+    unsigned i;
+    for (i = 0; i < pool_mgr->gap_ix_capacity; i++) {
+        if (pool_mgr->gap_ix[i].size == size) {
+            break;
+        }
+    }
+    while (i < pool_mgr->gap_ix_capacity - 1) {
+        pool_mgr->gap_ix[i].size = pool_mgr->gap_ix[i+1].size;
+        pool_mgr->gap_ix[i].node = pool_mgr->gap_ix[i+1].node;
+        i++;
+    }
+    pool_mgr->pool.num_gaps = i;
+    pool_mgr->gap_ix[i].size = 0;
+    pool_mgr->gap_ix[i].node = NULL;
+    
     // find the position of the node in the gap index
     // loop from there to the end of the array:
     //    pull the entries (i.e. copy over) one position up
