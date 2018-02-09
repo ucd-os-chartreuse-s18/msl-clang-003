@@ -406,6 +406,36 @@ alloc_status mem_del_alloc(pool_pt pool, void * alloc) {
     pool_mgr_pt new_poolmgr = (pool_mgr_pt) pool;
     
     // get node from alloc by casting the pointer to (node_pt)
+    node_pt node = (node_pt) alloc;
+    
+    // what is the benefit of this?
+    // (do I instead need the index instead?) check vars down the road
+    node_pt iter = new_poolmgr->node_heap;
+    while (node != iter) {
+        iter = iter->next;
+    }
+    //TODO assert the node was found
+    
+    // convert node to gap
+    node->allocated = 0;
+    node->alloc_record.mem = NULL;
+    
+    pool->num_gaps += 1;
+    pool->num_allocs -= 1;
+    
+    // might need to be careful of the sentinel here. I'm assuming
+    // the next is always "Used: 1"
+    if (node->next != NULL && !node->next->allocated) {
+        //combine sizes, deallocate one of the nodes,
+        //preserve the linkage (node->prev is good,
+        //node->next->next will be node->next,
+        //node->next->next->prev will be node)
+        
+        //in addition to being deallocated, call the
+        //mem remove function below:
+        //_mem_remove_from_gap_ix();
+        //alloc_status
+    }
     
     // find the node in the node heap
     // this is node-to-delete
