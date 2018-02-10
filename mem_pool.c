@@ -365,7 +365,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
                 if (new_alloc->next != NULL) {
                     new_alloc->next->prev = new_gap;
                 }
-                
+                new_gap->next = new_alloc->next;
                 new_alloc->next = new_gap;
                 new_gap->prev = new_alloc;
                 new_pmgr->used_nodes += 1;

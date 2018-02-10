@@ -2422,6 +2422,7 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario03, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario04, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario05, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario07, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown),
@@ -2430,21 +2431,20 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario12, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario13, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
     };
     
     const struct CMUnitTest failed_tests[] = {
             // First-fit tests
             
-            cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
-            //cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
             
             // Best-fit tests
-            //cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
-            //cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
-            //cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
-            //cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
-            //cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
-            //cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
             //*/
             // Stress test
             //cmocka_unit_test(test_pool_stresstest0)
