@@ -55,23 +55,23 @@ static void print_pool(pool_pt pool) {
 static void check_pool(pool_pt pool, const pool_segment_pt exp) {
     pool_segment_pt segs = NULL;
     unsigned size = 0;
-    
+
     assert_non_null(pool);
-    
+
     mem_inspect_pool(pool, &segs, &size);
-    
+
     assert_non_null(segs);
     assert_int_not_equal(size, 0);
-    
+
 #ifdef INSPECT_POOL
-    for (unsigned u = 0; u < size; u++)
+    for (unsigned u = 0; u < size; u ++)
         printf("%10lu - %s\n", (unsigned long) segs[u].size, (segs[u].allocated) ? "alloc" : "gap");
 #endif
-    
+
     assert_memory_equal(exp, segs, size * sizeof(pool_segment_t));
-    
+
     if (segs) free(segs);
-    
+
 #ifdef INSPECT_POOL
     printf("\n");
 #endif
@@ -131,14 +131,12 @@ static void check_metadata(pool_pt pool,
 /***          1. SMOKE TESTS             ***/
 /*******************************************/
 
-// repeatedly calls mem_init and mem_free,
-// also testing ALLOC_CALLED_AGAIN
 static void test_pool_store_smoketest(void **state) {
     (void) state; /* unused */
 
     alloc_status status;
 
-    for (int i = 0; i < NUM_TEST_ITERATIONS; ++i) {
+    for (int i=0; i<NUM_TEST_ITERATIONS; i++) {
         INFO("Initializing pool store\n");
         status = mem_init();
         assert_int_equal(status, ALLOC_OK);
@@ -155,9 +153,6 @@ static void test_pool_store_smoketest(void **state) {
     }
 }
 
-// tests mem_pool_open and mem_pool_close repeatedly with
-// different sizes and interchanging fitting policies
-// (each iteration also calls mem_init and mem_free)
 static void test_pool_smoketest(void **state) {
     (void) state; /* unused */
 
@@ -167,7 +162,7 @@ static void test_pool_smoketest(void **state) {
 
     alloc_status status;
 
-    for (int i = 0; i < NUM_TEST_ITERATIONS; ++i) {
+    for (int i=0; i<NUM_TEST_ITERATIONS; i++) {
 
         POOL_POLICY = (i % 2) ? FIRST_FIT : BEST_FIT;
         pool_size *= (i + 1);
@@ -195,10 +190,6 @@ static void test_pool_smoketest(void **state) {
     }
 }
 
-// calls mem_init, opens a pool with FIRST_FIT,
-// then allocates 100, tries to close the pool
-// without deallocation, then closes the pool
-// and calls mem_free. no repetition
 static void test_pool_nonempty(void **state) {
     (void) state; /* unused */
 
@@ -246,9 +237,9 @@ static void test_pool_nonempty(void **state) {
 /***       2. USER-FACING METADATA       ***/
 /*******************************************/
 
-//static void test_pool_ff_metadata(void **state) {
-//    alloc_status status;
-//    pool_pt pool = *state;
+static void test_pool_ff_metadata(void **state) {
+    alloc_status status;
+    pool_pt pool = *state;
 
     /*
      * Uses scenario 07 w/o pool checking:
@@ -263,7 +254,7 @@ static void test_pool_nonempty(void **state) {
      * 8. Deallocate the 10000.
      * 9. Deallocate 1100.
      */
-/*
+
     pool_segment_t exp0[1] =
             {
                     {pool->total_size, 0}
@@ -368,11 +359,10 @@ static void test_pool_nonempty(void **state) {
 
     check_metadata(pool, FIRST_FIT, POOL_SIZE, 0, 0, 1);
 }
-*/
 
-//static void test_pool_bf_metadata(void **state) {
-//    alloc_status status;
-//    pool_pt pool = *state;
+static void test_pool_bf_metadata(void **state) {
+    alloc_status status;
+    pool_pt pool = *state;
 
     /*
      * Uses scenario 17 w/o pool checking:
@@ -384,7 +374,7 @@ static void test_pool_nonempty(void **state) {
      * 5. Allocate another 50.
      * 6. Clean up.
      */
-/*
+
     pool_segment_t exp0[1] =
             {
                     {pool->total_size, 0},
@@ -468,7 +458,7 @@ static void test_pool_nonempty(void **state) {
 
     check_metadata(pool, BEST_FIT, POOL_SIZE, 0, 0, 1);
 }
-*/
+
 
 /*******************************************/
 /***       3. FIRST_FIT SCENARIOS        ***/
@@ -832,15 +822,15 @@ static void test_pool_scenario05(void **state) {
      * 8. Deallocate the 10000.
      * 9. Deallocate 2000.
      */
-    
+
     pool_segment_t exp0[1] =
             {
                     {pool->total_size, 0}
             };  // empty pool
     check_pool(pool, exp0);
-    
-    
-    printf("allocate 100\n");
+
+
+    // 2. allocate 100
     void * alloc0 = mem_new_alloc(pool, 100);
     assert_non_null(alloc0);
 
@@ -850,9 +840,9 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100, 0}
             }; // one allocation of 100
     check_pool(pool, exp1);
-    
-    
-    printf("allocate 1000\n");
+
+
+    // 3. allocate 1000
     void * alloc1 = mem_new_alloc(pool, 1000);
     assert_non_null(alloc1);
 
@@ -863,9 +853,9 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100-1000, 0}
             }; // two allocations: 100, 1000
     check_pool(pool, exp2);
-    
-    
-    printf("allocate 10000\n");
+
+
+    // 4. allocate 10000
     void * alloc2 = mem_new_alloc(pool, 10000);
     assert_non_null(alloc2);
 
@@ -877,9 +867,9 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // three allocations: 100, 1000, 10000
     check_pool(pool, exp3);
-    
-    
-    printf("deallocate 1000\n");
+
+
+    // 5. deallocate 1000
     status = mem_del_alloc(pool, alloc1);
     assert_int_equal(status, ALLOC_OK);
 
@@ -891,9 +881,9 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // two allocations 100, 10000 w/ two gaps
     check_pool(pool, exp4);
-    
-    
-    printf("deallocate 100\n");
+
+
+    // 6. deallocate 100
     status = mem_del_alloc(pool, alloc0);
     assert_int_equal(status, ALLOC_OK);
 
@@ -904,11 +894,12 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // one allocations 10000 w/ two gaps
     check_pool(pool, exp5);
-    
-    printf("allocate 2000\n");
+
+
+    // 7. allocate 2000
     void * alloc3 = mem_new_alloc(pool, 2000);
     assert_non_null(alloc3);
-    
+
     pool_segment_t exp6[4] =
             {
                     {1100, 0},
@@ -917,11 +908,12 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100-1000-10000-2000, 0}
             };
     check_pool(pool, exp6);
-    
-    printf("deallocate 10000\n");
+
+
+    // 8. deallocate 10000
     status = mem_del_alloc(pool, alloc2);
     assert_int_equal(status, ALLOC_OK);
-    
+
     pool_segment_t exp7[3] =
             {
                     {11100, 0},
@@ -929,19 +921,19 @@ static void test_pool_scenario05(void **state) {
                     {pool->total_size-100-1000-10000-2000, 0}
             };
     check_pool(pool, exp7);
-    
-    printf("deallocate 2000\n");
+
+
+    // 9. deallocate 2000
     status = mem_del_alloc(pool, alloc3);
     assert_int_equal(status, ALLOC_OK);
 
     check_pool(pool, exp0);
-    
 }
 
 static void test_pool_scenario06(void **state) {
     alloc_status status;
     pool_pt pool = *state;
-    
+
     /*
      * Scenario 06:
      *
@@ -961,9 +953,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size, 0}
             };  // empty pool
     check_pool(pool, exp0);
-    
-    
-    printf("allocate 100\n");
+
+
+    // 2. allocate 100
     void * alloc0 = mem_new_alloc(pool, 100);
     assert_non_null(alloc0);
 
@@ -973,9 +965,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-100, 0}
             }; // one allocation of 100
     check_pool(pool, exp1);
-    
-    
-    printf("allocate 1000\n");
+
+
+    // 3. allocate 1000
     void * alloc1 = mem_new_alloc(pool, 1000);
     assert_non_null(alloc1);
 
@@ -986,9 +978,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-100-1000, 0}
             }; // two allocations: 100, 1000
     check_pool(pool, exp2);
-    
-    
-    printf("allocate 10000\n");
+
+
+    // 4. allocate 10000
     void * alloc2 = mem_new_alloc(pool, 10000);
     assert_non_null(alloc2);
 
@@ -1000,9 +992,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // three allocations: 100, 1000, 10000
     check_pool(pool, exp3);
-    
-    
-    printf("deallocate 1000\n");
+
+
+    // 5. deallocate 1000
     status = mem_del_alloc(pool, alloc1);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1014,9 +1006,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // two allocations 100, 10000 w/ two gaps
     check_pool(pool, exp4);
-    
-    
-    printf("deallocate 100\n");
+
+
+    // 6. deallocate 100
     status = mem_del_alloc(pool, alloc0);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1027,9 +1019,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // one allocations 10000 w/ two gaps
     check_pool(pool, exp5);
-    
-    
-    printf("allocate 500\n");
+
+
+    // 7. allocate 500
     void * alloc3 = mem_new_alloc(pool, 500);
     assert_non_null(alloc3);
 
@@ -1041,9 +1033,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             };
     check_pool(pool, exp6);
-    
-    
-    printf("deallocate 10000\n");
+
+
+    // 8. deallocate 10000
     status = mem_del_alloc(pool, alloc2);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1053,9 +1045,9 @@ static void test_pool_scenario06(void **state) {
                     {pool->total_size-500, 0}
             };
     check_pool(pool, exp7);
-    
-    
-    printf("deallocate 500\n");
+
+
+    // 9. deallocate 500
     status = mem_del_alloc(pool, alloc3);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1209,7 +1201,7 @@ static void test_pool_scenario08(void **state) {
     check_pool(pool, exp0);
 
 
-    printf("allocate 100\n");
+    // 2. allocate 100
     void * alloc0 = mem_new_alloc(pool, 100);
     assert_non_null(alloc0);
 
@@ -1219,9 +1211,9 @@ static void test_pool_scenario08(void **state) {
                     {pool->total_size-100, 0}
             }; // one allocation of 100
     check_pool(pool, exp1);
-    
-    
-    printf("allocate 1000\n");
+
+
+    // 3. allocate 1000
     void * alloc1 = mem_new_alloc(pool, 1000);
     assert_non_null(alloc1);
 
@@ -1232,9 +1224,9 @@ static void test_pool_scenario08(void **state) {
                     {pool->total_size-100-1000, 0}
             }; // two allocations: 100, 1000
     check_pool(pool, exp2);
-    
-    
-    printf("allocate 10000\n");
+
+
+    // 4. allocate 10000
     void * alloc2 = mem_new_alloc(pool, 10000);
     assert_non_null(alloc2);
 
@@ -1246,9 +1238,9 @@ static void test_pool_scenario08(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // three allocations: 100, 1000, 10000
     check_pool(pool, exp3);
-    
-    
-    printf("deallocate 1000\n");
+
+
+    // 5. deallocate 1000
     status = mem_del_alloc(pool, alloc1);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1260,9 +1252,9 @@ static void test_pool_scenario08(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // two allocations 100, 10000 w/ two gaps
     check_pool(pool, exp4);
-    
-    
-    printf("deallocate 100\n");
+
+
+    // 6. deallocate 100
     status = mem_del_alloc(pool, alloc0);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1273,16 +1265,16 @@ static void test_pool_scenario08(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // one allocations 10000 w/ two gaps
     check_pool(pool, exp5);
-    
-    
-    printf("try 989000 (should not succeed)\n");
+
+
+    // 7. try 989000 (should not succeed)
     void * alloc3 = mem_new_alloc(pool, 989000);
     assert_null(alloc3);
 
     check_pool(pool, exp5);
-    
-    
-    printf("// 8. deallocate 10000\n");
+
+
+    // 8. deallocate 10000
     status = mem_del_alloc(pool, alloc2);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1431,15 +1423,15 @@ static void test_pool_scenario10(void **state) {
      * 8. Deallocate the 10000.
      * 9. Deallocate the 988900.
      */
-    printf("empty\n");
+
     pool_segment_t exp0[1] =
             {
                     {pool->total_size, 0}
             };  // empty pool
     check_pool(pool, exp0);
-    
-    
-    printf("2. allocate 100\n");
+
+
+    // 2. allocate 100
     void * alloc0 = mem_new_alloc(pool, 100);
     assert_non_null(alloc0);
 
@@ -1449,9 +1441,9 @@ static void test_pool_scenario10(void **state) {
                     {pool->total_size-100, 0}
             }; // one allocation of 100
     check_pool(pool, exp1);
-    
-    
-    printf("3. allocate 1000\n");
+
+
+    // 3. allocate 1000
     void * alloc1 = mem_new_alloc(pool, 1000);
     assert_non_null(alloc1);
 
@@ -1462,9 +1454,9 @@ static void test_pool_scenario10(void **state) {
                     {pool->total_size-100-1000, 0}
             }; // two allocations: 100, 1000
     check_pool(pool, exp2);
-    
-    
-    printf("4. allocate 10000\n");
+
+
+    // 4. allocate 10000
     void * alloc2 = mem_new_alloc(pool, 10000);
     assert_non_null(alloc2);
 
@@ -1478,7 +1470,7 @@ static void test_pool_scenario10(void **state) {
     check_pool(pool, exp3);
 
 
-    printf("5. deallocate 1000\n");
+    // 5. deallocate 1000
     status = mem_del_alloc(pool, alloc1);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1490,9 +1482,9 @@ static void test_pool_scenario10(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // two allocations 100, 10000 w/ two gaps
     check_pool(pool, exp4);
-    
-    
-    printf("6. deallocate 100\n");
+
+
+    // 6. deallocate 100
     status = mem_del_alloc(pool, alloc0);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1503,9 +1495,9 @@ static void test_pool_scenario10(void **state) {
                     {pool->total_size-100-1000-10000, 0}
             }; // one allocations 10000 w/ two gaps
     check_pool(pool, exp5);
-    
-    
-    printf("7. allocate 988900\n");
+
+
+    // 7. allocate 988900
     void * alloc3 = mem_new_alloc(pool, 988900);
     assert_non_null(alloc3);
 
@@ -1516,9 +1508,9 @@ static void test_pool_scenario10(void **state) {
                     {988900, 1},
             };
     check_pool(pool, exp6);
-    
-    
-    printf("8. deallocate 10000\n");
+
+
+    // 8. deallocate 10000
     status = mem_del_alloc(pool, alloc2);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1528,9 +1520,9 @@ static void test_pool_scenario10(void **state) {
                     {988900, 1},
             };
     check_pool(pool, exp7);
-    
-    
-    printf("9. deallocate 988900\n");
+
+
+    // 9. deallocate 988900
     status = mem_del_alloc(pool, alloc3);
     assert_int_equal(status, ALLOC_OK);
 
@@ -1636,31 +1628,29 @@ static void test_pool_scenario12(void **state) {
 
     const unsigned NUM_ALLOCS = 10;
 
-    void * *allocs = (void **) calloc(NUM_ALLOCS, sizeof(void *));
+    void * *allocs = (void * *) calloc(NUM_ALLOCS, sizeof(void *));
     assert_non_null(allocs);
 
-    for (int i = 0; i < NUM_ALLOCS; ++i) {
+    for (int i=0; i<NUM_ALLOCS; ++i) {
         allocs[i] = mem_new_alloc(pool, 100);
         assert_non_null(allocs[i]);
     }
-    
     assert_int_equal(mem_del_alloc(pool, allocs[1]), ALLOC_OK); allocs[1]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[2]), ALLOC_OK); allocs[2]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[4]), ALLOC_OK); allocs[4]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[8]), ALLOC_OK); allocs[8]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[6]), ALLOC_OK); allocs[6]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[7]), ALLOC_OK); allocs[7]=0;
-    
-    // 3 deallocated in order, then switch the order
+
     pool_segment_t exp1[8] =
             {
-                    {100, 1}, // 0
-                    {200, 0}, // 1, 2
-                    {100, 1}, // 3
-                    {100, 0}, // 4
-                    {100, 1}, // 5
-                    {300, 0}, // 6, 7, 8
-                    {100, 1}, // 9
+                    {100, 1},
+                    {200, 0},
+                    {100, 1},
+                    {100, 0},
+                    {100, 1},
+                    {300, 0},
+                    {100, 1},
                     {pool->total_size - 1000, 0},
             };
     check_pool(pool, exp1);
@@ -1683,10 +1673,9 @@ static void test_pool_scenario12(void **state) {
 
 
     // clean up
-    for (int i = 0; i < NUM_ALLOCS; ++i) {
-        if (allocs[i]) {
+    for (int i=0; i<NUM_ALLOCS; ++i) {
+        if (allocs[i])
             assert_int_equal(mem_del_alloc(pool, allocs[i]), ALLOC_OK);
-        }
     }
     free(allocs);
     assert_int_equal(mem_del_alloc(pool, alloc0), ALLOC_OK);
@@ -1824,8 +1813,8 @@ static void test_pool_scenario14(void **state) {
                     {pool->total_size - 1000, 0},
             };
     check_pool(pool, exp1);
-    
-    
+
+
     void * alloc0 = mem_new_alloc(pool, 100);
     assert_non_null(alloc0);
     pool_segment_t exp2[9] =
@@ -2408,13 +2397,16 @@ void test_pool_stresstest0(void **state) {
 /*******************************************/
 
 int run_test_suite() {
-    
-    const struct CMUnitTest passed_tests[] = {
+    const struct CMUnitTest tests[] = {
             // General tests
             cmocka_unit_test(test_pool_store_smoketest),
             cmocka_unit_test(test_pool_smoketest),
+
             cmocka_unit_test(test_pool_nonempty),
-            
+
+            cmocka_unit_test_setup_teardown(test_pool_ff_metadata, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_bf_metadata, pool_bf_setup, pool_bf_teardown),
+
             // First-fit tests
             cmocka_unit_test_setup_teardown(test_pool_scenario00, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario01, pool_ff_setup, pool_ff_teardown),
@@ -2427,30 +2419,23 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown),
-            
+
             // Best-fit tests
             cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario12, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario13, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
-    };
-    
-    const struct CMUnitTest failed_tests[] = {
-            // Best-fit tests
             cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            //*/
-            // Stress test
-            //cmocka_unit_test(test_pool_stresstest0)
+
+            // Stress tests
+            cmocka_unit_test(test_pool_stresstest0),
     };
-    
-    cmocka_run_group_tests_name("pool_test_suite", passed_tests, NULL, NULL);
-    printf("\nCurrent test to fix:\n");
-    return cmocka_run_group_tests_name("pool_test_suite", failed_tests, NULL, NULL);
-    
+
+    return cmocka_run_group_tests_name("pool_test_suite", tests, NULL, NULL);
 }
 
 // TODO
