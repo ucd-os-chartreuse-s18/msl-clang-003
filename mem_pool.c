@@ -318,6 +318,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
         
         // gaps will be sorted according to size available
         // reverse the direction?
+        //*
         for (int i = 0; i < pool->num_gaps; i++) {
             if (size < new_pmgr->gap_ix[i].size) { // found gap
                 new_alloc = new_pmgr->gap_ix->node;
@@ -326,6 +327,15 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
                 break;
             }
         }
+        /*
+        for (int i = pool->num_gaps - 1; i >= 0; --i) {
+            if (size < new_pmgr->gap_ix[i].size) { // found gap
+                new_alloc = new_pmgr->gap_ix->node;
+                // use new_alloc->allocated to signal success below
+                new_alloc->allocated = 1;
+                break;
+            }
+        } */
     }
     
     // TODO assert
@@ -678,13 +688,13 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
     for (int i = pool_mgr->pool.num_gaps - 1; i > 0; --i) {
         /* if the size of the current entry is less than the previous (u - 1)
          * or if the sizes are the same but the current entry points to a
-         * node with a lower address of pool allocation address (mem)
+         * node with a lower address of pool allocation address (node)
          * swap them (by copying) (remember to use a temporary variable)
          */
         if ((pool_mgr->gap_ix[i].size < pool_mgr->gap_ix[i-1].size)
                 || ((pool_mgr->gap_ix[i].size == pool_mgr->gap_ix[i-1].size)
-                && (pool_mgr->gap_ix[i].node->alloc_record.mem <
-                pool_mgr->gap_ix[i-1].node->alloc_record.mem))) {
+                && (pool_mgr->gap_ix[i].node <
+                pool_mgr->gap_ix[i-1].node))) {
             gap_t tmp_gap = pool_mgr->gap_ix[i];
             pool_mgr->gap_ix[i] = pool_mgr->gap_ix[i-1];
             pool_mgr->gap_ix[i-1] = tmp_gap;
