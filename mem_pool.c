@@ -293,6 +293,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     node_pt new_alloc = NULL;
     if (pool->policy == FIRST_FIT) {
         
+        // assumes node_heap[0] is the head ptr
         new_alloc = new_pmgr->node_heap;
         for (int i = 0; i < new_pmgr->total_nodes; i++) {
             
@@ -312,9 +313,8 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
         
     } else if (pool->policy == BEST_FIT) {
         
-        // gaps will be sorted according to size available.
-        // depending on which direction it is sorted, it
-        // may be helpful to iterate in the other direction
+        // gaps will be sorted according to size available
+        // reverse the direction?
         for (int i = 0; i < pool->num_gaps; i++) {
             if (size < new_pmgr->gap_ix[i].size) { // found gap
                 new_alloc = new_pmgr->gap_ix->node;
@@ -358,17 +358,27 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
                 new_gap->alloc_record.size = remaining_gap;
                 new_gap->allocated = 0;
                 
+                //new_alloc->next->prev = new_gap;
+                
+                //new_gap->next = new_alloc->next;
+                //new_gap->next->prev = new_gap;
+                if (new_alloc->next != NULL) {
+                    new_alloc->next->prev = new_gap;
+                }
+                
                 new_alloc->next = new_gap;
                 new_gap->prev = new_alloc;
                 new_pmgr->used_nodes += 1;
                 break;
             }
         }
+        
         // TODO assert
         // if we exit all the way without finding an unused node, we will need a bigger node
         // heap. that should be taken care of above, so I should also add an assert here
     
         alloc_status status = _mem_add_to_gap_ix(new_pmgr, remaining_gap, new_gap);
+        
         if (status == ALLOC_FAIL) {
             return NULL;
         }
@@ -502,12 +512,51 @@ void mem_inspect_pool(pool_pt pool,
         it = it->next;
     } //*/
     
+    /*
     int j = 0;
     for (int i = 0; i < new_pmgr->total_nodes; i++) {
         if (new_pmgr->node_heap[i].used) {
             new_seg_array[j].size = new_pmgr->node_heap[i].alloc_record.size;
             new_seg_array[j].allocated = new_pmgr->node_heap[i].allocated;
             ++j;
+        }
+    } //*/
+    
+    /*
+    // My assumption was trumped by scenario10
+    // Assumes the largest gap is the last node:
+    node_pt it = new_pmgr->gap_ix[pool->num_gaps - 1].node;
+    int n = new_pmgr->used_nodes - 1;
+    //new_pmgr->gap_ix_capacity
+    
+    for (int i = n; i >= 0; --i) {
+        new_seg_array[i].size = it->alloc_record.size;
+        new_seg_array[i].allocated = it->allocated;
+        it = it->prev;
+    } */
+    
+    node_pt it = NULL;
+    
+    // Find first used node in node heap.
+    for (int i = 0; i < new_pmgr->total_nodes; i++) {
+        if (new_pmgr->node_heap[i].used) {
+            it = &new_pmgr->node_heap[i];
+            break;
+        }
+    }
+    
+    // Traverse to the beginning of the heap
+    assert(it != NULL);
+    while (it->prev != NULL) {
+        it = it->prev;
+    }
+    
+    for (int i = 0; i < new_pmgr->total_nodes; ++i) {
+        new_seg_array[i].size = it->alloc_record.size;
+        new_seg_array[i].allocated = it->allocated;
+        it = it->next;
+        if (it == NULL) {
+            break;
         }
     }
     
