@@ -299,7 +299,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
             
             // Used: 1, Allocated: 0 indicates a gap
             // looking for gap who's size is > than our needed size
-            if (new_alloc->used == 1 && new_alloc->allocated == 0
+            if (new_alloc->used == 1 && new_alloc->allocated == 0 // BREAK
                 && size <= new_alloc->alloc_record.size) { // found gap
                 // use new_alloc->allocated to signal success below
                 new_alloc->allocated = 1;
@@ -309,6 +309,9 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
             //new_pmgr->node_heap[i];
             //iterate like a linked list or via indexing?
             new_alloc = new_alloc->next;
+            if (new_alloc == NULL) {
+                return NULL;
+            }
         }
         
     } else if (pool->policy == BEST_FIT) {
@@ -324,6 +327,10 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
             }
         }
     }
+    
+    // TODO assert
+    // if we exit all the way without finding an unused node, we will need a bigger node
+    // heap. that should be taken care of above, so I should also add an assert here
     
     assert(new_alloc != NULL);
     if (!new_alloc->allocated) { //the node was not found
@@ -373,10 +380,6 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
             }
         }
         
-        // TODO assert
-        // if we exit all the way without finding an unused node, we will need a bigger node
-        // heap. that should be taken care of above, so I should also add an assert here
-    
         alloc_status status = _mem_add_to_gap_ix(new_pmgr, remaining_gap, new_gap);
         
         if (status == ALLOC_FAIL) {
