@@ -2408,57 +2408,39 @@ void test_pool_stresstest0(void **state) {
 
 int run_test_suite() {
     
-    const struct CMUnitTest general[] = {
-        cmocka_unit_test(test_pool_store_smoketest),
-        cmocka_unit_test(test_pool_smoketest),
-        cmocka_unit_test(test_pool_nonempty)
+    const struct CMUnitTest tests[] = {
+            cmocka_unit_test(test_pool_store_smoketest),
+            cmocka_unit_test(test_pool_smoketest),
+            cmocka_unit_test(test_pool_nonempty),
+            cmocka_unit_test_setup_teardown(test_pool_scenario00, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario01, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario02, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario03, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario04, pool_ff_setup, pool_ff_teardown),
+            /*
+            cmocka_unit_test_setup_teardown(test_pool_scenario05, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario07, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown),
+            */
+            cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
+            
+            cmocka_unit_test_setup_teardown(test_pool_scenario12, pool_bf_setup, pool_bf_teardown),
+            /*
+            cmocka_unit_test_setup_teardown(test_pool_scenario13, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
+            cmocka_unit_test(test_pool_stresstest0) //*/
     };
     
-    const struct CMUnitTest first_fit[] = {
-        cmocka_unit_test_setup_teardown(test_pool_scenario00, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario01, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario02, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario03, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario04, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario05, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario07, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown)
-        
-    };
+    return cmocka_run_group_tests_name("pool_test_suite", tests, NULL, NULL);
     
-    const struct CMUnitTest best_fit[] = {
-        cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario12, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario13, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
-        cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown)
-    };
-    
-    const struct CMUnitTest stress_test[] = {
-        cmocka_unit_test(test_pool_stresstest0)
-    };
-    
-    int status, total = 0;
-    status = cmocka_run_group_tests_name("pool_test_suite", general, NULL, NULL);
-    status += total;
-    printf("General test status: [%d]\n\n", status);
-    status = cmocka_run_group_tests_name("pool_test_suite", first_fit, NULL, NULL);
-    status += total;
-    printf("First fit test status: [%d]\n\n", status);
-    status = cmocka_run_group_tests_name("pool_test_suite", best_fit, NULL, NULL);
-    status += total;
-    printf("Best fit test status: [%d]\n\n", status);
-    status = cmocka_run_group_tests_name("pool_test_suite", stress_test, NULL, NULL);
-    status += total;
-    printf("Stress test status: [%d]\n\n", status);
-    return total;
 }
 
 // TODO

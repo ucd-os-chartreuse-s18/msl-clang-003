@@ -275,10 +275,6 @@ alloc_status mem_pool_close(pool_pt pool) {
 
 void * mem_new_alloc(pool_pt pool, size_t size) {
     
-    // Note: Be careful of shallow vs. deep copying
-    // We are working with pointers, so values should
-    // carry over for the most part.
-    
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
     pool_mgr_pt new_pmgr = (pool_mgr_pt) (pool);
     
@@ -416,6 +412,10 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // get node from alloc by casting the pointer to (node_pt)
     node_pt node_handle = (node_pt) alloc;
     
+    if (new_pmgr->pool.num_gaps == 0) {
+        printf("DEBUG HERE");
+    }
+    
     // find the node to delete in the node heap
     unsigned del_index = 0;
     while (del_index < new_pmgr->total_nodes) {
@@ -441,6 +441,11 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // if the next node in the list is also a gap, merge into node handle
     if ((node_handle->next != NULL) &&
         (node_handle->next->allocated == 0)) {
+    
+        if (new_pmgr->pool.num_gaps == 0) {
+            printf("DEBUG HERE");
+        }
+        printf("COMING THRU\n\n");
         
         // remove the next node from gap index
         _mem_remove_from_gap_ix(new_pmgr,
@@ -471,11 +476,15 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // if the prev node in the list is also a gap, merge into node handle
     if ((node_handle->prev != NULL) &&
         (node_handle->prev->allocated == 0)) {
+    
+        if (new_pmgr->pool.num_gaps == 0) {
+            printf("DEBUG HERE");
+        }
         
         // remove the prev node from gap index
         _mem_remove_from_gap_ix(new_pmgr,
-                                node_handle->prev->alloc_record.size,
-                                node_handle->prev);
+            node_handle->prev->alloc_record.size,
+            node_handle->prev);
         
         // add the sizes
         // update node as unused
@@ -525,9 +534,21 @@ void mem_inspect_pool(pool_pt pool,
     
     // loop through the node heap and the segments array
     //    for each node, write the size and allocated in the segment
+    /*
+    node_pt it = &new_pmgr->node_heap[0]; // is this the head?
     for (int i = 0; i < new_pmgr->used_nodes; ++i) {
-        new_seg_array[i].size = new_pmgr->node_heap[i].alloc_record.size;
-        new_seg_array[i].allocated = new_pmgr->node_heap[i].allocated;
+        new_seg_array[i].size = it->alloc_record.size;
+        new_seg_array[i].allocated = it->allocated;
+        it = it->next;
+    } //*/
+    
+    int j = 0;
+    for (int i = 0; i < new_pmgr->total_nodes; i++) {
+        if (new_pmgr->node_heap[i].used) {
+            new_seg_array[j].size = new_pmgr->node_heap[i].alloc_record.size;
+            new_seg_array[j].allocated = new_pmgr->node_heap[i].allocated;
+            ++j;
+        }
     }
     
     // "return" the values
@@ -609,6 +630,10 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
                                             size_t size,
                                             node_pt node) {
+    if (pool_mgr->pool.num_gaps == 0) {
+        printf("DEBUG HERE");
+    }
+    assert(pool_mgr->pool.num_gaps != 0);
     // find the position of the node in the gap index
     unsigned i;
     for (i = 0; i < pool_mgr->pool.num_gaps; ++i) {
