@@ -123,7 +123,7 @@ alloc_status mem_free() {
     }
     // make sure all pool managers have been deallocated
     // if an entry in the pool store is not null, not freed
-    for (int i = 0; i < pool_store_size; i++) {
+    for (int i = 0; i < pool_store_size; ++i) {
         if (pool_store[i] != NULL) {
             return ALLOC_NOT_FREED;
         }
@@ -298,7 +298,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
         
         // assumes node_heap[0] is the head ptr
         new_alloc = new_pmgr->node_heap;
-        for (int i = 0; i < new_pmgr->total_nodes; i++) {
+        for (int i = 0; i < new_pmgr->total_nodes; ++i) {
             
             // Used: 1, Allocated: 0 indicates a gap
             // looking for gap who's size is > than our needed size
@@ -318,7 +318,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     } else if (pool->policy == BEST_FIT) {
         
         // gaps will be sorted according to size available
-        for (int i = 0; i < pool->num_gaps; i++) {
+        for (int i = 0; i < pool->num_gaps; ++i) {
             if (size <= new_pmgr->gap_ix[i].size) { // found gap
                 new_alloc = new_pmgr->gap_ix[i].node;
                 // use new_alloc->allocated to signal success below
@@ -356,7 +356,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     if (remaining_gap) {
         
         node_pt new_gap = NULL;
-        for (int i = 0; i < new_pmgr->total_nodes; i++) {
+        for (int i = 0; i < new_pmgr->total_nodes; ++i) {
             
             if (!new_pmgr->node_heap[i].used) {
                 
@@ -501,7 +501,7 @@ void mem_inspect_pool(pool_pt pool,
     node_pt it = NULL;
     
     // Find first used node in node heap.
-    for (int i = 0; i < new_pmgr->total_nodes; i++) {
+    for (int i = 0; i < new_pmgr->total_nodes; ++i) {
         if (new_pmgr->node_heap[i].used) {
             it = &new_pmgr->node_heap[i];
             break;
@@ -604,11 +604,10 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
                                             size_t size,
                                             node_pt node) {
     assert(pool_mgr->pool.num_gaps != 0);
-    // find the position of the node in the gap index
+    // find the position of the node in the gap index, track that index
     unsigned i;
     for (i = 0; i < pool_mgr->pool.num_gaps; ++i) {
-        if (pool_mgr->gap_ix[i].size == size &&
-            pool_mgr->gap_ix[i].node == node) { //TODO is this expression good?
+        if (pool_mgr->gap_ix[i].node == node) {
             break;
         }
     }
