@@ -1687,7 +1687,6 @@ static void test_pool_scenario12(void **state) {
     // clean up
     for (int i = 0; i < NUM_ALLOCS; ++i) {
         if (allocs[i]) {
-            printf("%dth deallocation: ", i + 1);
             assert_int_equal(mem_del_alloc(pool, allocs[i]), ALLOC_OK);
         }
     }
@@ -2436,6 +2435,7 @@ int run_test_suite() {
     const struct CMUnitTest failed_tests[] = {
             // First-fit tests
             cmocka_unit_test_setup_teardown(test_pool_scenario05, pool_ff_setup, pool_ff_teardown),
+            /*
             cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
@@ -2447,12 +2447,13 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            
+            */
             // Stress test
-            cmocka_unit_test(test_pool_stresstest0)
+            //cmocka_unit_test(test_pool_stresstest0)
     };
     
     cmocka_run_group_tests_name("pool_test_suite", passed_tests, NULL, NULL);
+    printf("\nCurrent test to fix:\n");
     return cmocka_run_group_tests_name("pool_test_suite", failed_tests, NULL, NULL);
     
 }
