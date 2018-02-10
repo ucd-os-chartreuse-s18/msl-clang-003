@@ -1638,29 +1638,31 @@ static void test_pool_scenario12(void **state) {
 
     const unsigned NUM_ALLOCS = 10;
 
-    void * *allocs = (void * *) calloc(NUM_ALLOCS, sizeof(void *));
+    void * *allocs = (void **) calloc(NUM_ALLOCS, sizeof(void *));
     assert_non_null(allocs);
 
-    for (int i=0; i<NUM_ALLOCS; ++i) {
+    for (int i = 0; i < NUM_ALLOCS; ++i) {
         allocs[i] = mem_new_alloc(pool, 100);
         assert_non_null(allocs[i]);
     }
+    
     assert_int_equal(mem_del_alloc(pool, allocs[1]), ALLOC_OK); allocs[1]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[2]), ALLOC_OK); allocs[2]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[4]), ALLOC_OK); allocs[4]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[8]), ALLOC_OK); allocs[8]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[6]), ALLOC_OK); allocs[6]=0;
     assert_int_equal(mem_del_alloc(pool, allocs[7]), ALLOC_OK); allocs[7]=0;
-
+    
+    // 3 deallocated in order, then switch the order
     pool_segment_t exp1[8] =
             {
-                    {100, 1},
-                    {200, 0},
-                    {100, 1},
-                    {100, 0},
-                    {100, 1},
-                    {300, 0},
-                    {100, 1},
+                    {100, 1}, // 0
+                    {200, 0}, // 1, 2
+                    {100, 1}, // 3
+                    {100, 0}, // 4
+                    {100, 1}, // 5
+                    {300, 0}, // 6, 7, 8
+                    {100, 1}, // 9
                     {pool->total_size - 1000, 0},
             };
     check_pool(pool, exp1);
@@ -1683,9 +1685,11 @@ static void test_pool_scenario12(void **state) {
 
 
     // clean up
-    for (int i=0; i<NUM_ALLOCS; ++i) {
-        if (allocs[i])
+    for (int i = 0; i < NUM_ALLOCS; ++i) {
+        if (allocs[i]) {
+            printf("%dth deallocation: ", i + 1);
             assert_int_equal(mem_del_alloc(pool, allocs[i]), ALLOC_OK);
+        }
     }
     free(allocs);
     assert_int_equal(mem_del_alloc(pool, alloc0), ALLOC_OK);
@@ -2417,26 +2421,27 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario02, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario03, pool_ff_setup, pool_ff_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario04, pool_ff_setup, pool_ff_teardown),
-            /*
-            cmocka_unit_test_setup_teardown(test_pool_scenario05, pool_ff_setup, pool_ff_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario07, pool_ff_setup, pool_ff_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown),
-            */
-            cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
             
+            
+            //cmocka_unit_test_setup_teardown(test_pool_scenario05, pool_ff_setup, pool_ff_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario06, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario07, pool_ff_setup, pool_ff_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario08, pool_ff_setup, pool_ff_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario09, pool_ff_setup, pool_ff_teardown),
+            cmocka_unit_test_setup_teardown(test_pool_scenario10, pool_ff_setup, pool_ff_teardown),
+            
+            
+            cmocka_unit_test_setup_teardown(test_pool_scenario11, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario12, pool_bf_setup, pool_bf_teardown),
-            /*
             cmocka_unit_test_setup_teardown(test_pool_scenario13, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            cmocka_unit_test(test_pool_stresstest0) //*/
+            
+            //cmocka_unit_test_setup_teardown(test_pool_scenario14, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario15, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario16, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
+            //cmocka_unit_test(test_pool_stresstest0) //*/
     };
     
     return cmocka_run_group_tests_name("pool_test_suite", tests, NULL, NULL);

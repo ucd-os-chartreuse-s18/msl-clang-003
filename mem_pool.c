@@ -387,7 +387,8 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
             return NULL;
         }
     } else { // the gap was completely replaced by the new alloc
-        new_pmgr->pool.num_gaps -= 1;
+        //This. This was the problem...
+        //new_pmgr->pool.num_gaps -= 1;
     }
     
     return (alloc_pt) new_alloc;
@@ -411,10 +412,6 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     
     // get node from alloc by casting the pointer to (node_pt)
     node_pt node_handle = (node_pt) alloc;
-    
-    if (new_pmgr->pool.num_gaps == 0) {
-        printf("DEBUG HERE");
-    }
     
     // find the node to delete in the node heap
     unsigned del_index = 0;
@@ -441,15 +438,17 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // if the next node in the list is also a gap, merge into node handle
     if ((node_handle->next != NULL) &&
         (node_handle->next->allocated == 0)) {
-    
-        if (new_pmgr->pool.num_gaps == 0) {
-            printf("DEBUG HERE");
-        }
+        
+        // raised err on passed test
+        //assert(pool->num_gaps + pool->num_allocs == new_pmgr->used_nodes);
         
         // remove the next node from gap index
         _mem_remove_from_gap_ix(new_pmgr,
             node_handle->next->alloc_record.size,
             node_handle->next);
+    
+        // raised err on passed test
+        //assert(pool->num_gaps + pool->num_allocs == new_pmgr->used_nodes);
         
         // add the sizes
         // update node as unused
@@ -475,15 +474,18 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // if the prev node in the list is also a gap, merge into node handle
     if ((node_handle->prev != NULL) &&
         (node_handle->prev->allocated == 0)) {
-    
-        if (new_pmgr->pool.num_gaps == 0) {
-            printf("DEBUG HERE");
-        }
         
+        // raised err on passed test
+        //assert(pool->num_gaps + pool->num_allocs == new_pmgr->used_nodes);
+    
         // remove the prev node from gap index
-        _mem_remove_from_gap_ix(new_pmgr,
+        alloc_status status = _mem_remove_from_gap_ix(new_pmgr,
             node_handle->prev->alloc_record.size,
             node_handle->prev);
+        
+        // raised err on passed test
+        //assert(pool->num_gaps + pool->num_allocs == new_pmgr->used_nodes);
+        // check status?
         
         // add the sizes
         // update node as unused
@@ -506,8 +508,17 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
         tmp->alloc_record.size = 0;
     }
     
+    // raised err on passed test
+    //assert(pool->num_gaps + pool->num_allocs == new_pmgr->used_nodes);
+    if (pool->num_allocs == 4 && pool->num_gaps == 2 &&
+            new_pmgr->used_nodes == 7) {
+        
+    }
+    
     // add resulting node to gap index
     alloc_status status = _mem_add_to_gap_ix(new_pmgr, node_handle->alloc_record.size, node_handle);
+    
+    assert(pool->num_gaps + pool->num_allocs == new_pmgr->used_nodes);
     
     if (status == ALLOC_FAIL) {
         return ALLOC_FAIL;
@@ -615,7 +626,8 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     pool_mgr->gap_ix[pool_mgr->pool.num_gaps].size = size;
     pool_mgr->gap_ix[pool_mgr->pool.num_gaps].node = node;
     // update metadata (num_gaps)
-    pool_mgr->pool.num_gaps++;
+    ++pool_mgr->pool.num_gaps;
+    
     // sort the gap index (call the function)
     result = _mem_sort_gap_ix(pool_mgr);
     //assert(result == ALLOC_OK);
@@ -629,9 +641,6 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
 static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
                                             size_t size,
                                             node_pt node) {
-    if (pool_mgr->pool.num_gaps == 0) {
-        printf("DEBUG HERE");
-    }
     assert(pool_mgr->pool.num_gaps != 0);
     // find the position of the node in the gap index
     unsigned i;
@@ -655,8 +664,9 @@ static alloc_status _mem_remove_from_gap_ix(pool_mgr_pt pool_mgr,
     // zero out the element at position num_gaps!
     pool_mgr->gap_ix[i].size = 0;
     pool_mgr->gap_ix[i].node = NULL;
-
-    return ALLOC_FAIL;
+    
+    // is there an ALLOC_FAIL case?
+    return ALLOC_OK;
 }
 
 // note: only called by _mem_add_to_gap_ix, which appends a single entry
