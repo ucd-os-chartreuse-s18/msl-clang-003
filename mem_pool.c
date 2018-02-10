@@ -519,18 +519,18 @@ void mem_inspect_pool(pool_pt pool,
     pool_segment_pt new_seg_array = calloc(new_pmgr->used_nodes, sizeof(pool_segment_t));
 
     // check successful
-    assert(new_seg_array);
     if (new_seg_array == NULL) {
         return;
     }
+    
     // loop through the node heap and the segments array
     //    for each node, write the size and allocated in the segment
     for (int i = 0; i < new_pmgr->used_nodes; ++i) {
         new_seg_array[i].size = new_pmgr->node_heap[i].alloc_record.size;
         new_seg_array[i].allocated = new_pmgr->node_heap[i].allocated;
     }
+    
     // "return" the values
-
     *segments = new_seg_array;
     *num_segments = new_pmgr->used_nodes;
 }
