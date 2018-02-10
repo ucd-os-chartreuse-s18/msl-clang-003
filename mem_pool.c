@@ -411,124 +411,70 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     // return allocation record by casting the node to (alloc_pt)
 }
 
-alloc_status mem_del_alloc(pool_pt pool, void * alloc) {
-    
-    // Question for Gabe:
-    // Can't we just say "pool" instead of "new_pmgr->pool"?
-    // I think it makes more sense to do that.
+alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
     pool_mgr_pt new_pmgr = (pool_mgr_pt) pool;
-
+    
     // get node from alloc by casting the pointer to (node_pt)
     node_pt node_handle = (node_pt) alloc;
-
+    
     // find the node in the node heap
-    node_pt node_to_del = NULL; //this is node-to-delete
-    unsigned i; // use as an index beyond for loop scope
-    for (i = 0; i < new_pmgr->total_nodes; ++i) {
-        //this was confusing. had to dereference node_heap[i]
-        //and compare addresses or overload == for struct_node
-        if (&new_pmgr->node_heap[i] == node_handle) {
-            node_to_del = &new_pmgr->node_heap[i];
+    unsigned del_index = 0;
+    while (del_index < new_pmgr->total_nodes) {
+        if (&new_pmgr->node_heap[del_index] == node_handle) {
+            ++del_index;
             break;
         }
     }
     
     // make sure it's found
-    // assert(node_to_del);
-    if (node_to_del == NULL) {
-        return ALLOC_NOT_FREED; // failed to deallocate
+    if (del_index == new_pmgr->total_nodes) {
+        return ALLOC_NOT_FREED;
     }
+    
     // convert to gap node
     // allocated = 0 indicates a gap node
-    node_to_del->allocated = 0;
+    node_handle->allocated = 0;
     
     // update metadata (num_allocs, alloc_size)
     --new_pmgr->pool.num_allocs;
-    new_pmgr->pool.alloc_size -= node_to_del->alloc_record.size;
-    //++new_pmgr->pool.num_gaps; // decrements later for gap merging
+    new_pmgr->pool.alloc_size -= node_handle->alloc_record.size;
     
     // if the next node in the list is also a gap, merge into node-to-delete
-    if ((node_to_del->next != NULL) &&
-        (node_to_del->next->allocated == 0)) {
+    if ((node_handle->next != NULL) &&
+        (node_handle->next->allocated == 0)) {
         
         //   remove the next node from gap index
-        _mem_remove_from_gap_ix(new_pmgr, node_to_del->next->alloc_record.size,
-                                node_to_del->next);
-    
-        // after we ensure the above method works,
-        // it seems we can get rid of this check here
-        for (int j = 0; j < new_pmgr->pool.num_gaps; ++j) {
-            if (&new_pmgr->gap_ix[j] == (gap_pt) &node_to_del) {
-                return ALLOC_NOT_FREED;
-            }
-        }
+        _mem_remove_from_gap_ix(new_pmgr,
+                node_handle->next->alloc_record.size,
+                node_handle->next);
         
-        //   add the size to the node-to-delete
+        //   add the sizes
         //   update node as unused
         //   update metadata (used nodes)
-        node_to_del->alloc_record.size += node_to_del->next->alloc_record.size;
-        node_to_del->next->used = 0;
+        node_handle->alloc_record.size += node_handle->next->alloc_record.size;
+        node_handle->next->used = 0;
         --new_pmgr->used_nodes;
         --new_pmgr->pool.num_gaps;
         
-        /*
-        // From the original file:
-        if (next->next) {
-            next->next->prev = node_to_del;
-            node_to_del->next = next->next;
-        } else {
-            node_to_del->next = NULL;
-        }
-        next->next = NULL;
-        next->prev = NULL;
-        */
-        
-        /*
-		void deleteNode(struct Node **head_ref, struct Node *del) {
-		// base case
-  		if (*head_ref == NULL || del == NULL)
-    		return;
- 
-  		// If node to be deleted is head node
-  		if (*head_ref == del)
-    		*head_ref = del->next;
- 
-  		// Change next only if node to be deleted is NOT the last node
-  		if (del->next != NULL)
-    		del->next->prev = del->prev;
- 
-  		// Change prev only if node to be deleted is NOT the first node
-  		if (del->prev != NULL)
-    		del->prev->next = del->next;     
- 
-  		// Finally, free the memory occupied by del
-  		free(del);
-  		return;
-		}
-        */
-        
         //   update linked list:
-        //first a check to see if the next node after the merge node is null
-        if (node_to_del->next->next != NULL) {
-            node_to_del->next->next->prev = node_to_del;
-            node_to_del->next = node_to_del->next->next;
-        } else {
-            node_to_del->next = NULL;
+        //    _____________________________
+        //   /                             \
+        //   v                             v
+        // (PREV) <-/-> ( HANDLE ) <-/-> (NEXT)
+        
+        if (node_handle->prev) { // reconnect left attachment
+            node_handle->prev->next = node_handle->next;
         }
-        
-        //SEGMENTATION FAULT HERE BECAUSE next is just set equal to null
-        node_to_del->next->next = NULL;
-        //unless I'm missing something, I don't think we need this line?
-        node_to_del->next->prev = NULL;
-        
-    } // end if statement that keeps us safe from seg fault
-    // ^
-    // Above comment is unclear to me
+        // reconnect right attachment
+        node_handle->next->prev = node_handle->next;
+        node_handle->next = NULL;
+        node_handle->prev = NULL;
+    }
     
-    if ((node_to_del->prev != NULL) &&
-        (node_to_del->next->allocated == 0)) {
+    if ((node_handle->prev != NULL) &&
+        (node_handle->next->allocated == 0)) {
         
         //   remove the prev node from gap index
         _mem_remove_from_gap_ix(new_pmgr, node_to_del->prev->alloc_record.size,
