@@ -445,7 +445,6 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
         if (new_pmgr->pool.num_gaps == 0) {
             printf("DEBUG HERE");
         }
-        printf("COMING THRU\n\n");
         
         // remove the next node from gap index
         _mem_remove_from_gap_ix(new_pmgr,
