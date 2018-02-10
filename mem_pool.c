@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <stdio.h> // for perror()
 
-#include "mem_pool.h"
+#include "mem_pool.h"S
 
 /*************/
 /*           */
@@ -446,11 +446,13 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
         (node_handle->next->allocated == 0)) {
         
         //   remove the next node from gap index
+        
         _mem_remove_from_gap_ix(new_pmgr,
                 node_handle->next->alloc_record.size,
                 node_handle->next);
         
         //   add the sizes
+        
         //   update node as unused
         //   update metadata (used nodes)
         node_handle->alloc_record.size += node_handle->next->alloc_record.size;
@@ -523,15 +525,27 @@ void mem_inspect_pool(pool_pt pool,
                       pool_segment_pt *segments,
                       unsigned *num_segments) {
     // get the mgr from the pool
+    pool_mgr_pt new_pmgr = (pool_mgr_pt) pool;
+
     // allocate the segments array with size == used_nodes
+    // we need a new dynamically allocated array of type pool_segment_pt to return
+    pool_segment_pt new_seg_array = calloc(new_pmgr->used_nodes, sizeof(pool_segment_t));
+
     // check successful
+    assert(new_seg_array);
+    if (new_seg_array == NULL) {
+        return;
+    }
     // loop through the node heap and the segments array
     //    for each node, write the size and allocated in the segment
-    // "return" the values:
-    /*
-                    *segments = segs;
-                    *num_segments = pool_mgr->used_nodes;
-     */
+    for (int i = 0; i < new_pmgr->used_nodes; ++i) {
+        new_seg_array[i].size = new_pmgr->node_heap[i].alloc_record.size;
+        new_seg_array[i].allocated = new_pmgr->node_heap[i].allocated;
+    }
+    // "return" the values
+
+    *segments = new_seg_array;
+    *num_segments = new_pmgr->used_nodes;
 }
 
 
@@ -575,10 +589,9 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     // perform whatever check necessary instead of doing this boundary check
     // here. I'm not sure of that though. (see the comment below)
     if (pool_mgr->pool.num_gaps == pool_mgr->gap_ix_capacity) {
-    
         // expand the gap index, if necessary (call the function)
         result = _mem_resize_gap_ix(pool_mgr);
-        //assert(result == ALLOC_OK);
+        // assert(result == ALLOC_OK);
         if (result != ALLOC_OK) {
             return ALLOC_FAIL;
         }
@@ -644,7 +657,7 @@ static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr) {
         if ((pool_mgr->gap_ix[i].size < pool_mgr->gap_ix[i-1].size)
                 || ((pool_mgr->gap_ix[i].size == pool_mgr->gap_ix[i-1].size)
                 && (pool_mgr->gap_ix[i].node->alloc_record.mem <
-                pool_mgr->gap_ix[i].node->alloc_record.mem))) {
+                pool_mgr->gap_ix[i-1].node->alloc_record.mem))) {
             gap_t tmp_gap = pool_mgr->gap_ix[i];
             pool_mgr->gap_ix[i] = pool_mgr->gap_ix[i-1];
             pool_mgr->gap_ix[i-1] = tmp_gap;
