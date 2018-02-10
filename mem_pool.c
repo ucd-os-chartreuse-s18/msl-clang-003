@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <stdio.h> // for perror()
 
-#include "mem_pool.h"S
+#include "mem_pool.h"
 
 /*************/
 /*           */
@@ -240,9 +240,6 @@ alloc_status mem_pool_close(pool_pt pool) {
     // check if this pool is allocated
     // check if it has zero allocations
     // check if pool has only one gap
-    //assert(new_pmgr);
-    //assert(pool->num_allocs == 0);
-    printf("%d", pool->num_gaps);
     if (
        (new_pmgr == NULL) ||
        (pool->num_gaps > 1) ||
@@ -419,13 +416,13 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // get node from alloc by casting the pointer to (node_pt)
     node_pt node_handle = (node_pt) alloc;
     
-    // find the node in the node heap
+    // find the node to delete in the node heap
     unsigned del_index = 0;
     while (del_index < new_pmgr->total_nodes) {
         if (&new_pmgr->node_heap[del_index] == node_handle) {
-            ++del_index;
             break;
         }
+        ++del_index;
     }
     
     // make sure it's found
@@ -441,78 +438,68 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     --new_pmgr->pool.num_allocs;
     new_pmgr->pool.alloc_size -= node_handle->alloc_record.size;
     
-    // if the next node in the list is also a gap, merge into node-to-delete
+    // if the next node in the list is also a gap, merge into node handle
     if ((node_handle->next != NULL) &&
         (node_handle->next->allocated == 0)) {
         
-        //   remove the next node from gap index
-        
+        // remove the next node from gap index
         _mem_remove_from_gap_ix(new_pmgr,
-                node_handle->next->alloc_record.size,
-                node_handle->next);
+            node_handle->next->alloc_record.size,
+            node_handle->next);
         
-        //   add the sizes
-        
-        //   update node as unused
-        //   update metadata (used nodes)
+        // add the sizes
+        // update node as unused
+        // update metadata (used nodes)
         node_handle->alloc_record.size += node_handle->next->alloc_record.size;
         node_handle->next->used = 0;
         --new_pmgr->used_nodes;
-        --new_pmgr->pool.num_gaps;
         
-        //   update linked list:
-        //    _____________________________
-        //   /                             \
-        //   v                             v
-        // (PREV) <-/-> ( HANDLE ) <-/-> (NEXT)
-        
-        if (node_handle->prev) { // reconnect left attachment
-            node_handle->prev->next = node_handle->next;
+        // update linked list:
+        // IF next node has a continuing node, give
+        // THAT node a new prev. We are merging the
+        // node_handle->next INTO node_handle
+        if (node_handle->next->next) {
+            node_handle->next->next->prev = node_handle;
         }
-        // reconnect right attachment
-        node_handle->next->prev = node_handle->next;
-        node_handle->next = NULL;
-        node_handle->prev = NULL;
+        node_pt tmp = node_handle->next;
+        node_handle->next = node_handle->next->next;
+        tmp->next = NULL;
+        tmp->prev = NULL;
+        tmp->alloc_record.size = 0;
     }
     
+    // if the prev node in the list is also a gap, merge into node handle
     if ((node_handle->prev != NULL) &&
-        (node_handle->next->allocated == 0)) {
+        (node_handle->prev->allocated == 0)) {
         
-        //   remove the prev node from gap index
-        _mem_remove_from_gap_ix(new_pmgr, node_to_del->prev->alloc_record.size,
-                                node_to_del->prev);
-    
-        // after we ensure the above method works,
-        // it seems we can get rid of this check here
-        for (int j = 0; j < new_pmgr->pool.num_gaps; ++j) {
-            if (&new_pmgr->gap_ix[j] == (gap_pt) &node_to_del) {
-                return ALLOC_NOT_FREED;
-            }
-        }
+        // remove the prev node from gap index
+        _mem_remove_from_gap_ix(new_pmgr,
+                                node_handle->prev->alloc_record.size,
+                                node_handle->prev);
         
-        //   add the size to the node-to-delete
-        node_to_del->alloc_record.size += node_to_del->next->alloc_record.size;
-    
-        //   update node as unused
-        node_to_del->prev->used = 0;
-    
-        //   update metadata (used nodes)
+        // add the sizes
+        // update node as unused
+        // update metadata (used nodes)
+        node_handle->alloc_record.size += node_handle->prev->alloc_record.size;
+        node_handle->prev->used = 0;
         --new_pmgr->used_nodes;
-        //   update linked list:
-        //first a check to see if the next node after the merge node is null
-        if (node_to_del->prev->prev != NULL) {
-            node_to_del->prev->prev->next = node_to_del;
-            node_to_del->prev = node_to_del->prev->prev;
-        } else {
-            node_to_del->prev = NULL;
+        
+        // update linked list:
+        // IF prev node has a continuing node, give
+        // THAT node a new next. We are merging the
+        // node_handle->prev INTO node_handle
+        if (node_handle->prev->prev) {
+            node_handle->prev->prev->next = node_handle;
         }
-        node_to_del->prev->prev = NULL;
-        //unless I'm missing something, I don't think we need this line?
-        node_to_del->prev->next = NULL;
+        node_pt tmp = node_handle->prev;
+        node_handle->prev = node_handle->prev->prev;
+        tmp->prev = NULL;
+        tmp->next = NULL;
+        tmp->alloc_record.size = 0;
     }
     
     // add resulting node to gap index
-    alloc_status status = _mem_add_to_gap_ix(new_pmgr, node_to_del->alloc_record.size, node_to_del);
+    alloc_status status = _mem_add_to_gap_ix(new_pmgr, node_handle->alloc_record.size, node_handle);
     
     if (status == ALLOC_FAIL) {
         return ALLOC_FAIL;
