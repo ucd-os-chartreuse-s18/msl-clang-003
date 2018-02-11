@@ -21,7 +21,7 @@ static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
 static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75;
 static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;
 
-static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
+static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 100;
 static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75;
 static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;
 
@@ -286,7 +286,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     // expand heap node, if necessary, quit on error
     //TODO see if this works
     alloc_status result =_mem_resize_node_heap(new_pmgr);
-
+    
     assert(result == ALLOC_OK);
     // check used nodes fewer than total nodes, quit on error
     if (new_pmgr->used_nodes > new_pmgr->total_nodes) {
@@ -390,6 +390,8 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     pool_mgr_pt new_pmgr = (pool_mgr_pt) pool;
     node_pt node_handle = (node_pt) alloc;
     
+    printf("deleting %p\n\n", &node_handle->alloc_record.mem);
+    
     // find the node to delete in the node heap
     unsigned del_index = 0;
     while (del_index < new_pmgr->total_nodes) {
@@ -432,7 +434,9 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
         // IF next node has a continuing node, give
         // THAT node a new prev. We are merging the
         // node_handle->next INTO node_handle
-        if (node_handle->next->next) {
+       
+        //node->next->next equals 0x640, a weird non-null address
+        if (node_handle->next->next) { //seg fault?
             node_handle->next->next->prev = node_handle;
         }
         node_pt tmp = node_handle->next;
@@ -543,7 +547,7 @@ static alloc_status _mem_resize_pool_store() {
 }
 
 static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
-    // see above
+    
     if (((float) pool_mgr->used_nodes / pool_mgr->total_nodes) >=
             MEM_NODE_HEAP_FILL_FACTOR) {
         /* first we have to clear the gap index
@@ -563,14 +567,17 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
         // allocate the head pointer to easily copy over at the end
         node_pt head_node = new_heap;
         
+        // make sure work node is head?
+        /*while (work_node->prev != NULL) {
+            work_node = work_node->prev;
+        } */
+        
         /*
          * Now we traverse the new and old node_heaps and
          * copy over each node one at a time using memcpy.
          * If a node is a gap (allocated = 0) we add it to the gap index
          */
-        // TODO last left off here
-        
-        while (work_node != NULL) {
+        while (work_node != NULL) { //(work_node != NULL)
             memcpy(new_heap, work_node, sizeof(node_t));
             
             // if it's a gap add it to the gap index
@@ -582,7 +589,7 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
             work_node = work_node->next;
             new_heap = new_heap->next;
         }
-
+        
         // update the capacity of the node heap and the head node.
         pool_mgr->total_nodes = pool_mgr->total_nodes * MEM_NODE_HEAP_EXPAND_FACTOR;
         pool_mgr->node_heap = head_node;

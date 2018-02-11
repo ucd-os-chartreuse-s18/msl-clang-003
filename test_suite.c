@@ -2373,8 +2373,6 @@ void test_pool_stresstest0(void **state) {
         printf("[0] finished a set of deletions for pix %d\n", pix);
     }
     
-    printf("intermediate");
-    
     // delete pools
     for (unsigned pix=0; pix < num_pools; ++pix) {
         // delete pool's allocations
@@ -2382,8 +2380,10 @@ void test_pool_stresstest0(void **state) {
             if (allocations[pix][aix]) {
                 // delete allocation
                 printf("aix %d\n", aix);
-                if (aix == 30) {
-                    printf("debug start. pix [%d], alloc [%p]", pix, allocations[pix][aix]);
+                printf("pools[pix] = %p, where pix is %d\n", pools[pix], pix);
+                printf("alloc %p\n", allocations[pix][aix]);
+                if (aix == 74) {
+                    printf("DEBUG");
                 }
                 assert_int_equal(
                         mem_del_alloc(pools[pix], allocations[pix][aix]),
