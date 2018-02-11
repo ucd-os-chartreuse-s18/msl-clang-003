@@ -2370,19 +2370,27 @@ void test_pool_stresstest0(void **state) {
                 allocations[pix][aix] = NULL;
             }
         }
+        printf("[0] finished a set of deletions for pix %d\n", pix);
     }
-
+    
+    printf("intermediate");
+    
     // delete pools
     for (unsigned pix=0; pix < num_pools; ++pix) {
         // delete pool's allocations
         for (unsigned aix=0; aix < num_allocations; ++aix) {
             if (allocations[pix][aix]) {
                 // delete allocation
+                printf("aix %d\n", aix);
+                if (aix == 30) {
+                    printf("debug start. pix [%d], alloc [%p]", pix, allocations[pix][aix]);
+                }
                 assert_int_equal(
                         mem_del_alloc(pools[pix], allocations[pix][aix]),
                         ALLOC_OK);
             }
         }
+        printf("[1] finished a set of deletions for pix %d\n", pix);
         // close pool
         assert_int_equal(mem_pool_close(pools[pix]), ALLOC_OK);
     }
@@ -2402,7 +2410,6 @@ int run_test_suite() {
             // General tests
             cmocka_unit_test(test_pool_store_smoketest),
             cmocka_unit_test(test_pool_smoketest),
-
             cmocka_unit_test(test_pool_nonempty),
 
             cmocka_unit_test_setup_teardown(test_pool_ff_metadata, pool_ff_setup, pool_ff_teardown),
@@ -2431,7 +2438,7 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            */
+            //*/
             // Stress tests
             cmocka_unit_test(test_pool_stresstest0),
     };

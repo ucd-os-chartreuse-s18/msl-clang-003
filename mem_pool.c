@@ -279,9 +279,6 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
     pool_mgr_pt new_pmgr = (pool_mgr_pt) (pool);
     
-    // quit if there are no gaps (check?)
-    // quit if alloc size == total size?
-    
     // check if any gaps, return null if none
     if (new_pmgr->pool.num_gaps == 0) {
         return NULL;
@@ -385,10 +382,6 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
         }
     }
     
-    if (new_alloc->used != 1) {
-        printf("The used value is %d?", new_alloc->used);
-    }
-    
     return (alloc_pt) new_alloc;
 }
 
@@ -400,12 +393,8 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // find the node to delete in the node heap
     unsigned del_index = 0;
     while (del_index < new_pmgr->total_nodes) {
-        if (new_pmgr->node_heap[del_index].alloc_record.size == node_handle->alloc_record.size) {
-            //MOSTLY FOR DEBUG
-            printf("size match: %d\n", (int) new_pmgr->node_heap[del_index].alloc_record.size);
-            break;
-        } else printf("size: %d\n", (int) new_pmgr->node_heap[del_index].alloc_record.size);
-        if (&new_pmgr->node_heap[del_index] == node_handle) {
+        
+        if (new_pmgr->node_heap[del_index].alloc_record.mem == node_handle->alloc_record.mem) {
             break;
         }
         ++del_index;
