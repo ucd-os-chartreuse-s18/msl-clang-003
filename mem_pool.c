@@ -344,9 +344,6 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     
     // update metadata (num_allocs, alloc_size)
     pool->num_allocs += 1;
-    printf("alloc_size [%d] = alloc_size [%d] + size [%d]\n",
-        (int) (pool->alloc_size + size),
-        (int) pool->alloc_size, (int) size);
     pool->alloc_size += size;
     
     size_t remaining_gap = new_alloc->alloc_record.size - size;
@@ -388,6 +385,10 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
         }
     }
     
+    if (new_alloc->used != 1) {
+        printf("The used value is %d?", new_alloc->used);
+    }
+    
     return (alloc_pt) new_alloc;
 }
 
@@ -399,6 +400,11 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     // find the node to delete in the node heap
     unsigned del_index = 0;
     while (del_index < new_pmgr->total_nodes) {
+        if (new_pmgr->node_heap[del_index].alloc_record.size == node_handle->alloc_record.size) {
+            //MOSTLY FOR DEBUG
+            printf("size match: %d\n", (int) new_pmgr->node_heap[del_index].alloc_record.size);
+            break;
+        } else printf("size: %d\n", (int) new_pmgr->node_heap[del_index].alloc_record.size);
         if (&new_pmgr->node_heap[del_index] == node_handle) {
             break;
         }
@@ -407,7 +413,7 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     
     // make sure it's found
     if (del_index == new_pmgr->total_nodes) {
-        return ALLOC_NOT_FREED;
+        return ALLOC_FAIL;
     }
     
     // convert to gap node
@@ -416,10 +422,6 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     
     // update metadata (num_allocs, alloc_size)
     --pool->num_allocs;
-    printf("alloc_size [%d] = alloc_size [%d] - size [%d]\n",
-       (int) (pool->alloc_size - node_handle->alloc_record.size),
-       (int) pool->alloc_size,
-       (int) node_handle->alloc_record.size);
     pool->alloc_size -= node_handle->alloc_record.size;
     
     // if the next node in the list is also a gap, merge into node handle
@@ -542,47 +544,51 @@ static alloc_status _mem_resize_pool_store() {
     // check if necessary
     // cast to float for accurate math with float const MEM_POOL_STORE_FILL_FACTOR
     // using a cast to size_t, otherwise the float cannot fit in size_t
-    if (((float)pool_store_size / pool_store_capacity) >= MEM_POOL_STORE_FILL_FACTOR) {
+    if (((float) pool_store_size / pool_store_capacity) >= MEM_POOL_STORE_FILL_FACTOR) {
         pool_store = realloc(pool_store, (size_t) (pool_store_capacity *
                 MEM_POOL_STORE_FILL_FACTOR * sizeof(pool_mgr_pt)));
         pool_store_capacity = pool_store_capacity * MEM_POOL_STORE_EXPAND_FACTOR;
+        printf("Resizing pool store\n");
     }
     return ALLOC_OK;
 }
 
 static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
     // see above
-    if (((float)pool_mgr->used_nodes / pool_mgr->total_nodes) >=
+    if (((float) pool_mgr->used_nodes / pool_mgr->total_nodes) >=
             MEM_NODE_HEAP_FILL_FACTOR) {
         /* first we have to clear the gap index
          * this makes sure we don't have a bunch of invalid pointers
          * after moving the nodes to a new array.
          */
+        printf("Resizing node heap\n");
         _mem_invalidate_gap_ix(pool_mgr);
-
+        
         // allocate a new, expanded node heap
         node_pt new_heap = calloc(pool_mgr->total_nodes *
-                                          MEM_NODE_HEAP_EXPAND_FACTOR, sizeof(node_t));
-
+            MEM_NODE_HEAP_EXPAND_FACTOR, sizeof(node_t));
+        
         // allocate a work node, use this to traverse each next pointer in the list
         node_pt work_node = pool_mgr->node_heap;
-
+        
         // allocate the head pointer to easily copy over at the end
         node_pt head_node = new_heap;
-
-        /* Now we traverse the new and old node_heaps and
+        
+        /*
+         * Now we traverse the new and old node_heaps and
          * copy over each node one at a time using memcpy.
          * If a node is a gap (allocated = 0) we add it to the gap index
          */
-
+        // TODO last left off here
+        
         while (work_node != NULL) {
             memcpy(new_heap, work_node, sizeof(node_t));
-
+            
             // if it's a gap add it to the gap index
             if (work_node->allocated == 0) {
                 _mem_add_to_gap_ix(pool_mgr, new_heap->alloc_record.size, new_heap);
             }
-
+            
             // move on to the next in the list
             work_node = work_node->next;
             new_heap = new_heap->next;
@@ -596,11 +602,12 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
 }
 
 static alloc_status _mem_resize_gap_ix(pool_mgr_pt pool_mgr) {
-    if (((float)pool_mgr->gap_ix->size / pool_mgr->gap_ix_capacity) >=
+    if (((float) pool_mgr->gap_ix->size / pool_mgr->gap_ix_capacity) >=
             MEM_GAP_IX_FILL_FACTOR) {
         pool_mgr->gap_ix = realloc(pool_mgr->gap_ix, (size_t) (pool_mgr->gap_ix_capacity *
                                                                MEM_GAP_IX_EXPAND_FACTOR * sizeof(pool_mgr_pt)));
         pool_mgr->gap_ix_capacity = pool_mgr->gap_ix_capacity * MEM_GAP_IX_EXPAND_FACTOR;
+        printf("Resizing gap index\n");
     }
     return ALLOC_OK;
 }
@@ -710,6 +717,7 @@ static alloc_status _mem_invalidate_gap_ix(pool_mgr_pt pool_mgr) {
             return ALLOC_FAIL;
         }
     }
+    printf("invalidating gap index\n");
     return ALLOC_OK;
 }
 
