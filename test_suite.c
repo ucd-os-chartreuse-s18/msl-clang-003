@@ -2406,7 +2406,7 @@ void test_pool_stresstest0(void **state) {
 
 int run_test_suite() {
     const struct CMUnitTest tests[] = {
-            /*
+
             // General tests
             cmocka_unit_test(test_pool_store_smoketest),
             cmocka_unit_test(test_pool_smoketest),
@@ -2438,7 +2438,7 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            //*/
+            //
             // Stress tests
             cmocka_unit_test(test_pool_stresstest0),
     };
