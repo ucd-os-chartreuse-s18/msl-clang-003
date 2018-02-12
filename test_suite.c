@@ -2353,12 +2353,6 @@ void test_pool_stresstest0(void **state) {
         // allocate pool
         unsigned allocated = 0;
         for (unsigned aix=0; aix < num_allocations; ++aix) {
-            if (aix == 0 && pix == 1) {
-                //printf("aix %d\n", aix);
-            }
-            printf("aix %d\n", aix);
-            if ((int) aix == 7) printf("break\n");
-            if (pix) printf("%d aix\n", aix);
             allocations[pix][aix] =
                     mem_new_alloc(pools[pix], (aix + 1) * min_alloc_size);
             allocated += (aix + 1) * min_alloc_size;
@@ -2385,12 +2379,6 @@ void test_pool_stresstest0(void **state) {
         for (unsigned aix=0; aix < num_allocations; ++aix) {
             if (allocations[pix][aix]) {
                 // delete allocation
-                printf("aix %d\n", aix);
-                //printf("pools[pix] = %p, where pix is %d\n", pools[pix], pix);
-                //printf("alloc %p\n", allocations[pix][aix]);
-                if (aix == 8) {
-                    printf("DEBUG");
-                }
                 assert_int_equal(
                         mem_del_alloc(pools[pix], allocations[pix][aix]),
                         ALLOC_OK);

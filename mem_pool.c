@@ -326,9 +326,6 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
                 new_alloc = new_pmgr->gap_ix[i].node;
                 // use new_alloc->allocated to signal success below
                 new_alloc->allocated = 1;
-                if (new_alloc->used == 5004450) {
-                    printf("BREAK BREAK!!");
-                }
                 break;
             }
         }
@@ -546,7 +543,6 @@ static alloc_status _mem_resize_pool_store() {
         pool_store = realloc(pool_store, (size_t) (pool_store_capacity *
                 MEM_POOL_STORE_FILL_FACTOR * sizeof(pool_mgr_pt)));
         pool_store_capacity = pool_store_capacity * MEM_POOL_STORE_EXPAND_FACTOR;
-        printf("Resizing pool store\n");
     }
     return ALLOC_OK;
 }
@@ -567,12 +563,6 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         node_pt next = NULL;
         for (int i = 0; it != NULL; i++) {
             memcpy(&new_heap[i], it, sizeof(node_pt));
-            
-            //if ((void*) &new_heap[i].prev < (void*) 0x100000) {
-            //    printf("break");
-            //}
-            
-            //next = it->next;
             
             // Clear Old Data
             /*
@@ -599,7 +589,6 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         
         // update the capacity of the node heap and the head node.
         new_pmgr->total_nodes = new_pmgr->total_nodes * MEM_NODE_HEAP_EXPAND_FACTOR;
-        printf("done resizing\n");
     }
     return ALLOC_OK;
 }
@@ -610,7 +599,6 @@ static alloc_status _mem_resize_gap_ix(pool_mgr_pt pool_mgr) {
         pool_mgr->gap_ix = realloc(pool_mgr->gap_ix, (size_t) (pool_mgr->gap_ix_capacity *
                                                                MEM_GAP_IX_EXPAND_FACTOR * sizeof(pool_mgr_pt)));
         pool_mgr->gap_ix_capacity = pool_mgr->gap_ix_capacity * MEM_GAP_IX_EXPAND_FACTOR;
-        printf("Resizing gap index\n");
     }
     return ALLOC_OK;
 }
@@ -649,10 +637,6 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     // check success
     if (result != ALLOC_OK) {
         return ALLOC_FAIL;
-    }
-    
-    if (pool_mgr->gap_ix[0].node->used > 1) {
-        printf("XXX");
     }
     
     return result;
