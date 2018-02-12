@@ -2379,6 +2379,10 @@ void test_pool_stresstest0(void **state) {
         for (unsigned aix=0; aix < num_allocations; ++aix) {
             if (allocations[pix][aix]) {
                 // delete allocation
+                printf("deleting [pix=%d][aix=%d]\n", pix, aix);
+                if (aix == 8) {
+                    printf("breaking to debug\n");
+                }
                 assert_int_equal(
                         mem_del_alloc(pools[pix], allocations[pix][aix]),
                         ALLOC_OK);
@@ -2399,7 +2403,7 @@ void test_pool_stresstest0(void **state) {
 
 int run_test_suite() {
     const struct CMUnitTest tests[] = {
-
+            /*
             // General tests
             cmocka_unit_test(test_pool_store_smoketest),
             cmocka_unit_test(test_pool_smoketest),
@@ -2431,7 +2435,7 @@ int run_test_suite() {
             cmocka_unit_test_setup_teardown(test_pool_scenario17, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario18, pool_bf_setup, pool_bf_teardown),
             cmocka_unit_test_setup_teardown(test_pool_scenario19, pool_bf_setup, pool_bf_teardown),
-            //
+            //*/
             // Stress tests
             cmocka_unit_test(test_pool_stresstest0),
     };

@@ -24,7 +24,7 @@ static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
 static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75;
 static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;
 
-static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
+static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 10;
 static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75;
 static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;
 
@@ -305,7 +305,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
             
             // Used: 1, Allocated: 0 indicates a gap
             // looking for gap who's size is > than our needed size
-            if (new_alloc->used == 1 && new_alloc->allocated == 0 // BREAK
+            if (new_alloc->used == 1 && new_alloc->allocated == 0
                 && size <= new_alloc->alloc_record.size) { // found gap
                 // use new_alloc->allocated to signal success below
                 new_alloc->allocated = 1;
@@ -396,10 +396,13 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     
     // find the node to delete in the node heap
     unsigned del_index = 0;
-    while (del_index < new_pmgr->total_nodes) {
-        
-        if (new_pmgr->node_heap[del_index].alloc_record.mem == node_handle->alloc_record.mem) {
+    while (del_index < new_pmgr->total_nodes) { //addresses of sizes works..?
+        if (new_pmgr->node_heap[del_index].alloc_record.size ==
+                node_handle->alloc_record.size) {
             break;
+        }
+        if (&new_pmgr->node_heap[del_index].alloc_record.mem == &node_handle->alloc_record.mem) {
+            //break;
         }
         ++del_index;
     }
@@ -409,9 +412,12 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
         return ALLOC_FAIL;
     }
     
+    // Otherwise handle points to old node?
+    node_handle = &new_pmgr->node_heap[del_index];
+    
     // convert to gap node
     // allocated = 0 indicates a gap node
-    node_handle->allocated = 0;
+    node_handle->allocated = 0; //node_handle points to old node?
     
     // update metadata (num_allocs, alloc_size)
     --pool->num_allocs;
@@ -562,8 +568,9 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         node_pt it = new_pmgr->node_heap;
         node_pt next = NULL;
         for (int i = 0; it != NULL; i++) {
-            memcpy(&new_heap[i], it, sizeof(node_pt));
-            
+            memcpy(&new_heap[i], it, sizeof(node_t));
+            //the mem changes?
+            //new_heap->alloc_record.mem = it->alloc_record.mem;
             // Clear Old Data
             /*
             it->prev = NULL;
@@ -589,6 +596,7 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         
         // update the capacity of the node heap and the head node.
         new_pmgr->total_nodes = new_pmgr->total_nodes * MEM_NODE_HEAP_EXPAND_FACTOR;
+        new_pmgr->node_heap = new_heap;
     }
     return ALLOC_OK;
 }
