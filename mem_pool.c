@@ -399,10 +399,10 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     while (del_index < new_pmgr->total_nodes) { //addresses of sizes works..?
         if (new_pmgr->node_heap[del_index].alloc_record.size ==
                 node_handle->alloc_record.size) {
-            break;
+            //break;
         }
         if (&new_pmgr->node_heap[del_index].alloc_record.mem == &node_handle->alloc_record.mem) {
-            //break;
+            break;
         }
         ++del_index;
     }
@@ -570,7 +570,19 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         for (int i = 0; it != NULL; i++) {
             memcpy(&new_heap[i], it, sizeof(node_t));
             //the mem changes?
-            //new_heap->alloc_record.mem = it->alloc_record.mem;
+    
+            printf("old heap record addr: %p, size: %d, mem_addr: %p\n",
+                   (void*) &it->alloc_record,
+                   (int) it->alloc_record.size,
+                   (void*) it->alloc_record.mem
+            );
+            
+            printf("new heap record addr: %p, size: %d, mem_addr: %p\n\n",
+               (void*) &new_heap[i].alloc_record,
+               (int) new_heap[i].alloc_record.size,
+               (void*) new_heap[i].alloc_record.mem
+            );
+            new_heap[i].alloc_record = it->alloc_record; // crossing fingers
             // Clear Old Data
             /*
             it->prev = NULL;
@@ -588,7 +600,7 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         
         for (int i = 0; i < new_pmgr->used_nodes - 1; ++i) {
             new_heap[i].next = &new_heap[i+1];
-        } //new_heap[new_pmgr->used_nodes].next = NULL;
+        }
         
         for (int i = 1; i < new_pmgr->used_nodes; ++i) {
             new_heap[i].prev = &new_heap[i-1];
