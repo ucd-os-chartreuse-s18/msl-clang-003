@@ -353,6 +353,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     
     // convert gap_node to an allocation node of given size
     new_alloc->alloc_record.size = size;
+    new_alloc->alloc_record.mem = pool->mem + pool->alloc_size;
     
     if (remaining_gap) {
         
