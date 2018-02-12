@@ -21,7 +21,7 @@ static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
 static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75;
 static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;
 
-static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 100;
+static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 10;
 static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75;
 static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;
 
@@ -285,7 +285,7 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     }
     // expand heap node, if necessary, quit on error
     //TODO see if this works
-    alloc_status result =_mem_resize_node_heap(new_pmgr);
+    alloc_status result =_mem_resize_node_heap(new_pmgr); // observe gap index here
     
     assert(result == ALLOC_OK);
     // check used nodes fewer than total nodes, quit on error
@@ -318,11 +318,14 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     } else if (pool->policy == BEST_FIT) {
         
         // gaps will be sorted according to size available
-        for (int i = 0; i < pool->num_gaps; ++i) {
+        for (int i = 0; i < pool->num_gaps; ++i) {                  //[0] gets cleared and gap goes go [1]
             if (size <= new_pmgr->gap_ix[i].size) { // found gap
                 new_alloc = new_pmgr->gap_ix[i].node;
                 // use new_alloc->allocated to signal success below
                 new_alloc->allocated = 1;
+                if (new_alloc->used == 5004450) {
+                    printf("BREAK BREAK!!");
+                }
                 break;
             }
         }
@@ -332,6 +335,8 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     // if we exit all the way without finding an unused node, we will need a bigger node
     // heap. that should be taken care of above, so I should also add an assert here
     
+    // on resizing, new_alloc is NULL and we return NULL, but the actual
+    // linkage seems to work?
     if (new_alloc == NULL || !new_alloc->allocated) { //the node was not found
         return NULL;
     }
@@ -346,7 +351,6 @@ void * mem_new_alloc(pool_pt pool, size_t size) {
     size_t remaining_gap = new_alloc->alloc_record.size - size;
     _mem_remove_from_gap_ix(new_pmgr, new_alloc->alloc_record.size, new_alloc);
     
-    // TODO clarify what to do to the node here
     // convert gap_node to an allocation node of given size
     new_alloc->alloc_record.size = size;
     
@@ -389,8 +393,6 @@ alloc_status mem_del_alloc(pool_pt pool, void* alloc) {
     
     pool_mgr_pt new_pmgr = (pool_mgr_pt) pool;
     node_pt node_handle = (node_pt) alloc;
-    
-    printf("deleting %p\n\n", &node_handle->alloc_record.mem);
     
     // find the node to delete in the node heap
     unsigned del_index = 0;
@@ -546,53 +548,55 @@ static alloc_status _mem_resize_pool_store() {
     return ALLOC_OK;
 }
 
-static alloc_status _mem_resize_node_heap(pool_mgr_pt pool_mgr) {
+static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
     
-    if (((float) pool_mgr->used_nodes / pool_mgr->total_nodes) >=
+    if (((float) new_pmgr->used_nodes / new_pmgr->total_nodes) >=
             MEM_NODE_HEAP_FILL_FACTOR) {
-        /* first we have to clear the gap index
-         * this makes sure we don't have a bunch of invalid pointers
-         * after moving the nodes to a new array.
-         */
-        printf("Resizing node heap\n");
-        _mem_invalidate_gap_ix(pool_mgr);
+        
+        _mem_invalidate_gap_ix(new_pmgr);
+        new_pmgr->pool.num_gaps--;
         
         // allocate a new, expanded node heap
-        node_pt new_heap = calloc(pool_mgr->total_nodes *
+        node_pt new_heap = calloc(new_pmgr->total_nodes *
             MEM_NODE_HEAP_EXPAND_FACTOR, sizeof(node_t));
         
-        // allocate a work node, use this to traverse each next pointer in the list
-        node_pt work_node = pool_mgr->node_heap;
-        
-        // allocate the head pointer to easily copy over at the end
-        node_pt head_node = new_heap;
-        
-        // make sure work node is head?
-        /*while (work_node->prev != NULL) {
-            work_node = work_node->prev;
-        } */
-        
-        /*
-         * Now we traverse the new and old node_heaps and
-         * copy over each node one at a time using memcpy.
-         * If a node is a gap (allocated = 0) we add it to the gap index
-         */
-        while (work_node != NULL) { //(work_node != NULL)
-            memcpy(new_heap, work_node, sizeof(node_t));
+        node_pt it = new_pmgr->node_heap;
+        node_pt next = NULL;
+        for (int i = 0; it != NULL; i++) {
+            memcpy(&new_heap[i], it, sizeof(node_pt));
             
-            // if it's a gap add it to the gap index
-            if (work_node->allocated == 0) {
-                _mem_add_to_gap_ix(pool_mgr, new_heap->alloc_record.size, new_heap);
+            //if ((void*) &new_heap[i].prev < (void*) 0x100000) {
+            //    printf("break");
+            //}
+            
+            //next = it->next;
+            
+            // Clear Old Data
+            /*
+            it->prev = NULL;
+            it->alloc_record.size = 0;
+            it->alloc_record.mem = NULL;
+            it->used = 0;
+            it->allocated = 0; */
+            //it->next = NULL;
+            
+            if (new_heap[i].allocated == 0) { // add gap to gap index
+                _mem_add_to_gap_ix(new_pmgr, new_heap[i].alloc_record.size, &new_heap[i]);
             }
-            
-            // move on to the next in the list
-            work_node = work_node->next;
-            new_heap = new_heap->next;
+            it = it->next; //todo zero out old memory?
+        }
+        
+        for (int i = 0; i < new_pmgr->used_nodes - 1; ++i) {
+            new_heap[i].next = &new_heap[i+1];
+        } //new_heap[new_pmgr->used_nodes].next = NULL;
+        
+        for (int i = 1; i < new_pmgr->used_nodes; ++i) {
+            new_heap[i].prev = &new_heap[i-1];
         }
         
         // update the capacity of the node heap and the head node.
-        pool_mgr->total_nodes = pool_mgr->total_nodes * MEM_NODE_HEAP_EXPAND_FACTOR;
-        pool_mgr->node_heap = head_node;
+        new_pmgr->total_nodes = new_pmgr->total_nodes * MEM_NODE_HEAP_EXPAND_FACTOR;
+        printf("done resizing\n");
     }
     return ALLOC_OK;
 }
@@ -643,6 +647,11 @@ static alloc_status _mem_add_to_gap_ix(pool_mgr_pt pool_mgr,
     if (result != ALLOC_OK) {
         return ALLOC_FAIL;
     }
+    
+    if (pool_mgr->gap_ix[0].node->used > 1) {
+        printf("XXX");
+    }
+    
     return result;
 }
 
@@ -707,13 +716,6 @@ static alloc_status _mem_invalidate_gap_ix(pool_mgr_pt pool_mgr) {
         new_gap[i].node = NULL;
         new_gap[i].size = 0;
     }
-    // make sure we got every gap (should be impossible not to)
-    for (int i = 0; i < pool_mgr->pool.num_gaps; ++i) {
-        if (new_gap[i].node != NULL || new_gap[i].size != 0) {
-            return ALLOC_FAIL;
-        }
-    }
-    printf("invalidating gap index\n");
     return ALLOC_OK;
 }
 

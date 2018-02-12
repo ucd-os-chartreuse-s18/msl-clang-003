@@ -2321,7 +2321,7 @@ void test_pool_stresstest0(void **state) {
     (void) state; /* unused */
 
     const unsigned num_pools = 200;
-    const unsigned num_allocations = 1000;
+    const unsigned num_allocations = 1000; // 1000
     const unsigned min_alloc_size = 10;
     const unsigned pool_size =
             (num_allocations / 2) *
@@ -2349,9 +2349,16 @@ void test_pool_stresstest0(void **state) {
         pools[pix] =
                 mem_pool_open(pool_size, (pix % 2) ? FIRST_FIT : BEST_FIT);
         assert_non_null(pools[pix]);
+        
         // allocate pool
         unsigned allocated = 0;
         for (unsigned aix=0; aix < num_allocations; ++aix) {
+            if (aix == 0 && pix == 1) {
+                //printf("aix %d\n", aix);
+            }
+            printf("aix %d\n", aix);
+            if ((int) aix == 7) printf("break\n");
+            if (pix) printf("%d aix\n", aix);
             allocations[pix][aix] =
                     mem_new_alloc(pools[pix], (aix + 1) * min_alloc_size);
             allocated += (aix + 1) * min_alloc_size;
@@ -2370,7 +2377,6 @@ void test_pool_stresstest0(void **state) {
                 allocations[pix][aix] = NULL;
             }
         }
-        printf("[0] finished a set of deletions for pix %d\n", pix);
     }
     
     // delete pools
@@ -2380,9 +2386,9 @@ void test_pool_stresstest0(void **state) {
             if (allocations[pix][aix]) {
                 // delete allocation
                 printf("aix %d\n", aix);
-                printf("pools[pix] = %p, where pix is %d\n", pools[pix], pix);
-                printf("alloc %p\n", allocations[pix][aix]);
-                if (aix == 74) {
+                //printf("pools[pix] = %p, where pix is %d\n", pools[pix], pix);
+                //printf("alloc %p\n", allocations[pix][aix]);
+                if (aix == 8) {
                     printf("DEBUG");
                 }
                 assert_int_equal(
@@ -2390,7 +2396,6 @@ void test_pool_stresstest0(void **state) {
                         ALLOC_OK);
             }
         }
-        printf("[1] finished a set of deletions for pix %d\n", pix);
         // close pool
         assert_int_equal(mem_pool_close(pools[pix]), ALLOC_OK);
     }
