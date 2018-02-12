@@ -1,5 +1,8 @@
 /*
- * Created by Ivo Georgiev on 2/9/16.
+ * Original Created by Ivo Georgiev on 2/9/16.
+ *
+ * Implementation by Matthew Moltzau and Michael Hedrick
+ * UC Denver Spring 2018
  */
 
 #include <stdlib.h>
@@ -21,7 +24,7 @@ static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
 static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75;
 static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;
 
-static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 100;
+static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
 static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75;
 static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;
 
