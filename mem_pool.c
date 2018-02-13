@@ -24,7 +24,7 @@ static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
 static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75;
 static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;
 
-static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 10;
+static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
 static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75;
 static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;
 
@@ -571,7 +571,8 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
         for (int i = 0; it != NULL; i++) {
             memcpy(&new_heap[i], it, sizeof(node_t));
             //the mem changes?
-    
+            
+            /*
             printf("old heap record addr: %p, size: %d, mem_addr: %p\n",
                    (void*) &it->alloc_record,
                    (int) it->alloc_record.size,
@@ -582,7 +583,8 @@ static alloc_status _mem_resize_node_heap(pool_mgr_pt new_pmgr) {
                (void*) &new_heap[i].alloc_record,
                (int) new_heap[i].alloc_record.size,
                (void*) new_heap[i].alloc_record.mem
-            );
+            ); */
+            
             new_heap[i].alloc_record = it->alloc_record; // crossing fingers
             // Clear Old Data
             /*

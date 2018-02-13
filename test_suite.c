@@ -2403,7 +2403,7 @@ void test_pool_stresstest0(void **state) {
 
 int run_test_suite() {
     const struct CMUnitTest tests[] = {
-            /*
+            //*
             // General tests
             cmocka_unit_test(test_pool_store_smoketest),
             cmocka_unit_test(test_pool_smoketest),
